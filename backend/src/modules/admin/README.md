@@ -187,3 +187,75 @@ Frontend:
 La integración corresponde al integrante responsable.
 El trabajo se desarrolla en feature/panel-admin.
 No se realizan fusiones a main.
+
+---
+
+## ADM-04: Dashboard y precisión
+
+### Objetivo
+
+Implementar un Dashboard administrativo para consultar
+estadísticas de tickets y medir la precisión de las
+sugerencias del sistema SmartTriage-IT.
+
+### Funcionalidades implementadas
+
+- Conteo total de tickets.
+- Tickets agrupados por estado.
+- Tickets agrupados por categoría.
+- Tickets agrupados por prioridad.
+- Porcentaje de aceptación global.
+- Precisión por categoría, prioridad, grupo y técnico.
+- Precisión por categoría sugerida originalmente.
+- Manejo de casos sin decisiones confirmadas.
+
+### Cálculo de aceptación global
+
+Fórmula:
+
+Aceptación (%) =
+(Decisiones aceptadas sin corrección /
+Total de decisiones confirmadas) * 100
+
+Caso de prueba:
+
+- Decisiones confirmadas: 10
+- Aceptadas sin corrección: 8
+- Aceptación global: 80%
+
+Los tickets sin decisión no participan
+en el denominador.
+
+### Archivos implementados
+
+Backend:
+- metricas.service.ts
+- metricas.service.test.ts
+- metricas.routes.ts
+- metricas.routes.test.ts
+
+Frontend:
+- metricas.api.ts
+- DashboardPanel.tsx
+
+### Pruebas realizadas
+
+- 7 pruebas nuevas de ADM-04 aprobadas.
+- 99 pruebas totales aprobadas.
+- Compilación del frontend correcta.
+- Compilación del backend correcta.
+- Verificado cálculo de aceptación del 80%.
+- Verificados casos sin decisiones.
+- Verificados accesos HTTP 200, 401 y 403
+  mediante middlewares simulados.
+
+### Integración pendiente
+
+- Conectar el middleware real de administrador.
+- Montar la ruta GET /api/admin/metricas.
+- Incorporar DashboardPanel a la aplicación React.
+- Realizar pruebas visuales y capturas del Dashboard.
+
+El trabajo se realiza en feature/panel-admin.
+La integración corresponde al responsable del equipo.
+No se realizan fusiones a main.
