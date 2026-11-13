@@ -19,28 +19,75 @@ const nuevoNombre = () => `zz_test_${Date.now().toString(36)}_${contador++}`;
 
 async function sesion(usuario: string, password = CLAVE) {
   const a: Agente = request.agent(app);
-  const r = await a.post('/api/auth/login').send({ usuario, password });
+
+  const csrf = await a.get('/api/auth/csrf');
+
+  const r = await a
+    .post('/api/auth/login')
+    .set('X-CSRF-Token', csrf.body.csrfToken)
+    .send({ usuario, password });
+
   return { a, status: r.status };
 }
 
 describe('AUTH-04: administrar usuarios', { timeout: 20000 }, () => {
   let admin: Agente;
   let grupoId: number;
+  let adminToken: string;
 
+function postAdmin(url: string, datos: Record<string, unknown>) {
+  return admin
+    .post(url)
+    .set('X-CSRF-Token', adminToken)
+    .send(datos);
+}
+
+function patchAdmin(url: string, datos: Record<string, unknown>) {
+  return admin
+    .patch(url)
+    .set('X-CSRF-Token', adminToken)
+    .send(datos);
+}
+function deleteAdmin(url: string) {
+  return admin
+    .delete(url)
+    .set('X-CSRF-Token', adminToken);
+}
   async function crear(extra: Record<string, unknown> = {}) {
-    const usuario = nuevoNombre();
-    const r = await admin
-      .post('/api/usuarios')
-      .send({ nombre: 'Usuario Test', usuario, password: CLAVE, rol: 'agente', ...extra });
-    return { usuario, r };
-  }
+  const usuario = nuevoNombre();
+
+  const r = await postAdmin('/api/usuarios', {
+    nombre: 'Usuario Test',
+    usuario,
+    password: CLAVE,
+    rol: 'agente',
+    ...extra,
+  });
+
+  return { usuario, r };
+}
 
   beforeAll(async () => {
-    limpiar();
-    admin = (await sesion('admin')).a;
-    const grupos = (await admin.get('/api/usuarios/grupos')).body as { id: number }[];
-    grupoId = grupos[0]!.id;
-  });
+  limpiar();
+
+  const resultado = await sesion('admin');
+
+  expect(resultado.status).toBe(200);
+  admin = resultado.a;
+
+  // Obtener un token nuevo después de regenerar la sesión en el login.
+  const csrf = await admin.get('/api/auth/csrf');
+
+  expect(csrf.status).toBe(200);
+  adminToken = csrf.body.csrfToken as string;
+
+  const grupos = (await admin.get('/api/usuarios/grupos')).body as {
+    id: number;
+  }[];
+
+  expect(grupos.length).toBeGreaterThan(0);
+  grupoId = grupos[0]!.id;
+});
 
   afterAll(() => {
     limpiar();
@@ -75,24 +122,62 @@ describe('AUTH-04: administrar usuarios', { timeout: 20000 }, () => {
   });
 
   it('rechaza usuarios duplicados (también con otras mayúsculas)', async () => {
-    const { usuario } = await crear();
-    const igual = await admin
-      .post('/api/usuarios')
-      .send({ nombre: 'X', usuario, password: CLAVE, rol: 'agente' });
-    const mayus = await admin
-      .post('/api/usuarios')
-      .send({ nombre: 'X', usuario: usuario.toUpperCase(), password: CLAVE, rol: 'agente' });
-    expect(igual.status).toBe(409);
-    expect(mayus.status).toBe(409);
+  const { usuario } = await crear();
+
+  const igual = await postAdmin('/api/usuarios', {
+    nombre: 'X',
+    usuario,
+    password: CLAVE,
+    rol: 'agente',
   });
 
-  it('valida los datos: contraseña corta, rol inválido y campos no permitidos', async () => {
-    const base = { nombre: 'X', usuario: nuevoNombre(), password: CLAVE, rol: 'agente' };
-    expect((await admin.post('/api/usuarios').send({ ...base, password: 'corta' })).status).toBe(400);
-    expect((await admin.post('/api/usuarios').send({ ...base, rol: 'root' })).status).toBe(400);
-    expect((await admin.post('/api/usuarios').send({ ...base, password_hash: 'x' })).status).toBe(400);
-    expect((await admin.post('/api/usuarios').send({ ...base, usuario: 'a b' })).status).toBe(400);
+  const mayus = await postAdmin('/api/usuarios', {
+    nombre: 'X',
+    usuario: usuario.toUpperCase(),
+    password: CLAVE,
+    rol: 'agente',
   });
+
+  expect(igual.status).toBe(409);
+  expect(mayus.status).toBe(409);
+});
+
+  it('valida los datos: contraseña corta, rol inválido y campos no permitidos', async () => {
+  const base = {
+    nombre: 'X',
+    usuario: nuevoNombre(),
+    password: CLAVE,
+    rol: 'agente',
+  };
+
+  expect(
+    (await postAdmin('/api/usuarios', {
+      ...base,
+      password: 'corta',
+    })).status,
+  ).toBe(400);
+
+  expect(
+    (await postAdmin('/api/usuarios', {
+      ...base,
+      rol: 'root',
+    })).status,
+  ).toBe(400);
+
+  expect(
+    (await postAdmin('/api/usuarios', {
+      ...base,
+      password_hash: 'x',
+    })).status,
+  ).toBe(400);
+
+  expect(
+    (await postAdmin('/api/usuarios', {
+      ...base,
+      usuario: 'a b',
+    })).status,
+  ).toBe(400);
+});
 
   it('solo los técnicos pertenecen a un grupo activo y existente', async () => {
     expect((await crear({ rol: 'tecnico' })).r.status).toBe(400); // técnico sin grupo
@@ -103,39 +188,67 @@ describe('AUTH-04: administrar usuarios', { timeout: 20000 }, () => {
     expect(ok.r.body.grupo_id).toBe(grupoId);
   });
 
-  it('actualización: cambia el nombre; 404 si no existe; 400 si el cuerpo está vacío', async () => {
-    const { r } = await crear();
-    const id = r.body.id as number;
-    const up = await admin.patch(`/api/usuarios/${id}`).send({ nombre: 'Nombre Nuevo' });
-    expect(up.status).toBe(200);
-    expect(up.body.nombre).toBe('Nombre Nuevo');
-    expect((await admin.patch('/api/usuarios/999999').send({ nombre: 'X' })).status).toBe(404);
-    expect((await admin.patch(`/api/usuarios/${id}`).send({})).status).toBe(400);
-    expect((await admin.patch('/api/usuarios/abc').send({ nombre: 'X' })).status).toBe(400);
+ it('actualización: cambia el nombre; 404 si no existe; 400 si el cuerpo está vacío', async () => {
+  const { r } = await crear();
+  const id = r.body.id as number;
+
+  const up = await patchAdmin(`/api/usuarios/${id}`, {
+    nombre: 'Nombre Nuevo',
   });
+
+  expect(up.status).toBe(200);
+  expect(up.body.nombre).toBe('Nombre Nuevo');
+
+  expect(
+    (await patchAdmin('/api/usuarios/999999', { nombre: 'X' })).status,
+  ).toBe(404);
+
+  expect(
+    (await patchAdmin(`/api/usuarios/${id}`, {})).status,
+  ).toBe(400);
+
+  expect(
+    (await patchAdmin('/api/usuarios/abc', { nombre: 'X' })).status,
+  ).toBe(400);
+});
 
   it('al dejar de ser técnico se limpia el grupo; no se puede repetir el usuario al editar', async () => {
-    const tec = await crear({ rol: 'tecnico', grupo_id: grupoId });
-    const otro = await crear();
-    const aAgente = await admin.patch(`/api/usuarios/${tec.r.body.id}`).send({ rol: 'agente' });
-    expect(aAgente.status).toBe(200);
-    expect(aAgente.body.grupo_id).toBeNull();
-    const dup = await admin.patch(`/api/usuarios/${otro.r.body.id}`).send({ usuario: tec.usuario });
-    expect(dup.status).toBe(409);
+  const tec = await crear({ rol: 'tecnico', grupo_id: grupoId });
+  const otro = await crear();
+
+  const aAgente = await patchAdmin(`/api/usuarios/${tec.r.body.id}`, {
+    rol: 'agente',
   });
 
-  it('restablecer contraseña: la nueva funciona y la anterior deja de servir', async () => {
-    const { usuario, r } = await crear();
-    const up = await admin.patch(`/api/usuarios/${r.body.id}`).send({ password: 'NuevaClave456!' });
-    expect(up.status).toBe(200);
-    expect(JSON.stringify(up.body)).not.toContain('hash');
-    expect((await sesion(usuario, 'NuevaClave456!')).status).toBe(200);
-    expect((await sesion(usuario, CLAVE)).status).toBe(401);
+  expect(aAgente.status).toBe(200);
+  expect(aAgente.body.grupo_id).toBeNull();
+
+  const dup = await patchAdmin(`/api/usuarios/${otro.r.body.id}`, {
+    usuario: tec.usuario,
   });
+
+  expect(dup.status).toBe(409);
+});
+
+  it('restablecer contraseña: la nueva funciona y la anterior deja de servir', async () => {
+  const { usuario, r } = await crear();
+
+  const up = await patchAdmin(`/api/usuarios/${r.body.id}`, {
+    password: 'NuevaClave456!',
+  });
+
+  expect(up.status).toBe(200);
+  expect(JSON.stringify(up.body)).not.toContain('hash');
+
+  expect((await sesion(usuario, 'NuevaClave456!')).status).toBe(200);
+  expect((await sesion(usuario, CLAVE)).status).toBe(401);
+});
 
   it('desactivar (activo=0) conserva la fila y el usuario ya no puede autenticarse', async () => {
     const { usuario, r } = await crear();
-    const off = await admin.patch(`/api/usuarios/${r.body.id}`).send({ activo: false });
+    const off = await patchAdmin(`/api/usuarios/${r.body.id}`, {
+  activo: false,
+});
     expect(off.status).toBe(200);
     expect(off.body.activo).toBe(false);
 
@@ -145,7 +258,9 @@ describe('AUTH-04: administrar usuarios', { timeout: 20000 }, () => {
     expect(fila?.activo).toBe(0); // sigue existiendo, solo inactivo
     expect((await sesion(usuario)).status).toBe(401);
 
-    await admin.patch(`/api/usuarios/${r.body.id}`).send({ activo: true });
+    await patchAdmin(`/api/usuarios/${r.body.id}`, {
+  activo: true,
+});
     expect((await sesion(usuario)).status).toBe(200);
   });
 
@@ -153,15 +268,27 @@ describe('AUTH-04: administrar usuarios', { timeout: 20000 }, () => {
     const { usuario, r } = await crear();
     const s = await sesion(usuario);
     expect((await s.a.get('/api/auth/me')).status).toBe(200);
-    await admin.patch(`/api/usuarios/${r.body.id}`).send({ activo: false });
+    await patchAdmin(`/api/usuarios/${r.body.id}`, {
+  activo: false,
+});
     expect((await s.a.get('/api/auth/me')).status).toBe(401);
   });
 
   it('no existe DELETE y el administrador no puede desactivarse a sí mismo', async () => {
-    const { r } = await crear();
-    expect((await admin.delete(`/api/usuarios/${r.body.id}`)).status).toBe(404);
-    const yo = (await admin.get('/api/auth/me')).body.id as number;
-    expect((await admin.patch(`/api/usuarios/${yo}`).send({ activo: false })).status).toBe(409);
-    expect((await admin.patch(`/api/usuarios/${yo}`).send({ rol: 'agente' })).status).toBe(409);
-  });
+  const { r } = await crear();
+
+  expect(
+    (await deleteAdmin(`/api/usuarios/${r.body.id}`)).status,
+  ).toBe(404);
+
+  const yo = (await admin.get('/api/auth/me')).body.id as number;
+
+  expect(
+    (await patchAdmin(`/api/usuarios/${yo}`, { activo: false })).status,
+  ).toBe(409);
+
+  expect(
+    (await patchAdmin(`/api/usuarios/${yo}`, { rol: 'agente' })).status,
+  ).toBe(409);
+});
 });

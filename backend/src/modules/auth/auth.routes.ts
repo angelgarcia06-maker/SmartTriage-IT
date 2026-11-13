@@ -2,6 +2,7 @@ import { Router, type RequestHandler } from 'express';
 import { getUsuarioPorId, getUsuarioPorNombre, login, logout, me } from './auth.controller';
 import { loginRequired, roleRequired } from './auth.middleware';
 import { sessionMiddleware } from './session';
+import { csrfProtection, obtenerTokenCsrf } from './csrf';
 
 /**
  * Middlewares que se inyectan al montar el router de consulta de usuarios.
@@ -30,9 +31,14 @@ export function crearAuthRouter(opciones: OpcionesAuthRouter = {}): Router {
   // La sesión vive dentro del módulo, antes de cualquier middleware que la use.
   router.use(sessionMiddleware);
 
-  router.post('/login', login);
-  router.post('/logout', logout);
-  router.get('/me', me);
+  // Token CSRF para iniciar y mantener la sesión.
+router.get('/csrf', obtenerTokenCsrf);
+
+// Operaciones protegidas mediante token CSRF.
+router.post('/login', csrfProtection, login);
+router.post('/logout', csrfProtection, logout);
+
+router.get('/me', me);
 
   const proteger: RequestHandler[] =
     opciones.requiereAutenticacion && opciones.requiereAutorizacion

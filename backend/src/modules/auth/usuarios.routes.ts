@@ -1,3 +1,4 @@
+import { csrfProtection } from './csrf';
 import { Router } from 'express';
 import { loginRequired, roleRequired } from './auth.middleware';
 import { actualizar, crear, listar, listarGrupos } from './usuarios.controller';
@@ -12,6 +13,7 @@ export const usuariosRouter = Router();
 
 usuariosRouter.use(sessionMiddleware);
 usuariosRouter.use(loginRequired, roleRequired('administrador'));
+usuariosRouter.use(csrfProtection);
 
 usuariosRouter.get('/grupos', listarGrupos); // antes de /:id
 usuariosRouter.get('/', listar);
