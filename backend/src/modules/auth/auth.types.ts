@@ -1,6 +1,17 @@
-// TODO(AUTH-01): reemplazar por `import type { Rol } from 'shared/types/triaje.types'`
-// cuando el Integrante 5 ajuste el rootDir/paths del backend.
-// Debe mantenerse idéntico a Rol en shared/types/triaje.types.ts.
+/**
+ * Rol local de AUTH-01.
+ *
+ * Decisión temporal (TS6059): el backend compila con `rootDir: "src"` y los
+ * contratos compartidos viven en `shared/types`, fuera de esa carpeta. Importar
+ * `Rol` desde `shared/types/triaje.types.ts` haría que TypeScript incluya un
+ * archivo fuera de `rootDir` (TS6059) y cambiar `rootDir` alteraría el layout de
+ * `dist` que usa `npm start`.
+ *
+ * Mientras el integrador no adopte una solución de monorepositorio (paquete
+ * interno con declaraciones emitidas o project references), se mantiene este
+ * alias. Sus valores DEBEN coincidir exactamente con `Rol` de
+ * `shared/types/triaje.types.ts`.
+ */
 export type RolAuth = 'agente' | 'tecnico' | 'administrador';
 
 /** Fila tal como viene de la BD (uso interno, incluye el hash). */
