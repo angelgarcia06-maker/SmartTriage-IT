@@ -4,9 +4,13 @@ import { db } from './db/connection';
 import { authRouterCompleto } from './modules/auth/auth.routes';
 import { usuariosRouter } from './modules/auth/usuarios.routes';
 import { csrfProtection } from './modules/auth/csrf';
-import { roleRequired } from './modules/auth/auth.middleware';
+import { loginRequired, roleRequired } from './modules/auth/auth.middleware';
 import { sessionMiddleware } from './modules/auth/session';
 import { crearRutasTriaje } from './modules/triaje/rutas';
+import { catalogosRouter } from './modules/admin/catalogos.routes';
+import { crearCatalogosCrudRouter } from './modules/admin/catalogos.crud.routes';
+import { crearDiccionarioRouter } from './modules/admin/diccionario.routes';
+import { crearMetricasRouter } from './modules/admin/metricas.routes';
 
 export const app = express();
 
@@ -31,6 +35,23 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', csrfProtection, authRouterCompleto);
 // AUTH-04: administración de usuarios (solo administrador).
 app.use('/api/usuarios', csrfProtection, usuariosRouter);
+
+// ADM-01: catálogos de lectura para cualquier usuario autenticado (Tickets/Triaje).
+app.use('/api/catalogos', loginRequired, catalogosRouter);
+// ADM-02: altas, ediciones y desactivaciones solo para administradores.
+app.use('/api/catalogos', csrfProtection, crearCatalogosCrudRouter({
+  requiereAutenticacion: loginRequired,
+  requiereAdministrador: roleRequired('administrador'),
+}));
+// ADM-03/04: administración del diccionario y métricas, solo para administradores.
+app.use('/api/admin', csrfProtection, crearDiccionarioRouter({
+  requiereAutenticacion: loginRequired,
+  requiereAdministrador: roleRequired('administrador'),
+}));
+app.use('/api/admin', csrfProtection, crearMetricasRouter({
+  requiereAutenticacion: loginRequired,
+  requiereAdministrador: roleRequired('administrador'),
+}));
 
 // TRI: sugerencias y decisiones comparten sesión, autorización y protección CSRF de AUTH.
 app.use('/api', csrfProtection, crearRutasTriaje({ requiereRol: roleRequired }));

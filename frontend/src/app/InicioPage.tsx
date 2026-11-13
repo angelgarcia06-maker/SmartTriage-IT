@@ -8,7 +8,7 @@ const features = [
   { name: 'Autenticación y usuarios', owner: 'Integrante 1', icon: ShieldCheck, status: 'Integrado — AUTH' },
   { name: 'Tickets e historial', owner: 'Integrante 2', icon: Ticket, status: 'Pendiente — TICK' },
   { name: 'Triaje Nivel 1', owner: 'Integrante 3', icon: BrainCircuit, status: 'Integrado — TRI' },
-  { name: 'Administración y métricas', owner: 'Integrante 4', icon: ChartColumn, status: 'Pendiente — ADM' },
+  { name: 'Administración y métricas', owner: 'Integrante 4', icon: ChartColumn, status: 'Integrado — ADM' },
   { name: 'Pruebas e integración', owner: 'Integrante 5', icon: ClipboardCheck, status: 'En preparación — QA' },
 ];
 
@@ -39,8 +39,7 @@ export default function InicioPage() {
       <h1 className="brand h2">Bienvenido, {usuario?.nombre}</h1>
       <p className="muted mb-4">
         Sesión iniciada como <b>@{usuario?.usuario}</b> · rol{' '}
-        <b>{usuario ? (ETIQUETA_ROL[usuario.rol] ?? usuario.rol) : ''}</b>. Panel de arranque; cada módulo lo
-        completa su integrante mediante Pull Requests.
+        <b>{usuario ? (ETIQUETA_ROL[usuario.rol] ?? usuario.rol) : ''}        </b>. Panel de arranque de SmartTriage IT.
       </p>
 
       <div className="feature-card mb-4">
@@ -74,8 +73,8 @@ export default function InicioPage() {
       </div>
 
       <div className="alert alert-info mt-4 small">
-        Módulo AUTH integrado: inicio y cierre de sesión, sesión persistente y gestión de usuarios solo para
-        administradores. Triaje ofrece una demostración de sugerencias sin persistir tickets.
+        AUTH, Triaje y Administración están integrados. Los paneles administrativos están disponibles
+        únicamente para administradores.
       </div>
     </>
   );
