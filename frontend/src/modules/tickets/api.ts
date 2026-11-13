@@ -1,8 +1,10 @@
 import { API } from '../../../../shared/contracts/api.contract';
-import type { DatosTicket, EstadoTicket, Impacto, Prioridad, Urgencia } from '../../../../shared/types/triaje.types';
+import type { DatosTicket, EstadoTicket, Impacto, Prioridad, SugerenciaTriaje, Urgencia } from '../../../../shared/types/triaje.types';
+import { obtenerTokenCsrf } from '../auth/csrf';
 
 export interface TicketCreado {
   id: number;
+  sugerencia: SugerenciaTriaje | null;
 }
 
 export interface TicketResumen {
@@ -54,10 +56,11 @@ async function consultar<T>(url: string): Promise<T> {
 }
 
 export async function registrarTicket(datos: DatosTicket): Promise<TicketCreado> {
+  const tokenCsrf = await obtenerTokenCsrf();
   const respuesta = await fetch(API.tickets.create, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': tokenCsrf },
     body: JSON.stringify(datos),
   });
   const cuerpo = await respuesta.json().catch(() => ({}));
@@ -95,10 +98,11 @@ export async function actualizarEstadoTicket(
   estado: EstadoTicket,
   motivo?: string,
 ): Promise<{ ticket_id: number; estado: EstadoTicket; fecha: string }> {
+  const tokenCsrf = await obtenerTokenCsrf();
   const respuesta = await fetch(API.tickets.state(id), {
     method: 'PATCH',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': tokenCsrf },
     body: JSON.stringify(motivo ? { estado, motivo } : { estado }),
   });
   const cuerpo = await respuesta.json().catch(() => ({}));

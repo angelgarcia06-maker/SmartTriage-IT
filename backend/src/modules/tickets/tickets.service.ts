@@ -15,6 +15,8 @@ export interface DatosTicket {
 
 export interface SugerenciaTicket {
   categoria_id: number;
+  categoria: string;
+  es_otros: boolean;
   prioridad: 'Crítica' | 'Alta' | 'Media' | 'Baja';
   grupo_id: number | null;
   tecnico_id: number | null;

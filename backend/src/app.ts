@@ -3,10 +3,12 @@ import cors from 'cors';
 import { db } from './db/connection';
 import { authRouterCompleto } from './modules/auth/auth.routes';
 import { usuariosRouter } from './modules/auth/usuarios.routes';
-import { csrfProtection } from './modules/auth/csrf';
+import { csrfProtection, csrfTokenProtection } from './modules/auth/csrf';
 import { loginRequired, roleRequired } from './modules/auth/auth.middleware';
 import { sessionMiddleware } from './modules/auth/session';
 import { crearRutasTriaje } from './modules/triaje/rutas';
+import { sugerir } from './modules/triaje/sugerir';
+import { crearRutasTickets } from './modules/tickets/tickets.routes';
 import { catalogosRouter } from './modules/admin/catalogos.routes';
 import { crearCatalogosCrudRouter } from './modules/admin/catalogos.crud.routes';
 import { crearDiccionarioRouter } from './modules/admin/diccionario.routes';
@@ -51,6 +53,13 @@ app.use('/api/admin', csrfProtection, crearDiccionarioRouter({
 app.use('/api/admin', csrfProtection, crearMetricasRouter({
   requiereAutenticacion: loginRequired,
   requiereAdministrador: roleRequired('administrador'),
+}));
+
+// TICK: comparte sesión y sugeridor con Triaje; las escrituras usan el token AUTH-05.
+app.use('/api/tickets', csrfProtection, crearRutasTickets({
+  requiereAutenticacion: loginRequired,
+  protegerEscrituras: csrfTokenProtection,
+  sugerir: (datos, conexion) => sugerir(datos, conexion),
 }));
 
 // TRI: sugerencias y decisiones comparten sesión, autorización y protección CSRF de AUTH.

@@ -95,6 +95,8 @@ describe('POST /api/tickets', () => {
   it('crea el ticket como Nuevo y usa el usuario autenticado', async () => {
     const sugerencia = {
       categoria_id: 3,
+      categoria: 'Redes',
+      es_otros: false,
       prioridad: 'Crítica' as const,
       grupo_id: 2,
       tecnico_id: 9,
@@ -111,7 +113,7 @@ describe('POST /api/tickets', () => {
     const respuesta = await request(app).post('/api/tickets').send(cuerpo);
 
     expect(respuesta.status).toBe(201);
-    expect(respuesta.body).toEqual({ id: 1 });
+    expect(respuesta.body).toEqual({ id: 1, sugerencia });
     expect(conexion.prepare('SELECT * FROM tickets WHERE id = ?').get(respuesta.body.id)).toMatchObject({
       ...cuerpo,
       estado: 'Nuevo',
@@ -346,6 +348,8 @@ describe('flujo completo de alta, consulta, atención y cierre', () => {
       requiereAutenticacion: autenticarComo(usuarioSesion),
       sugerir: () => ({
         categoria_id: 3,
+        categoria: 'Redes',
+        es_otros: false,
         prioridad: 'Crítica',
         grupo_id: 2,
         tecnico_id: 9,

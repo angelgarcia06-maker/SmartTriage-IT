@@ -12,6 +12,7 @@ import {
   type TicketDetalle,
   type TicketResumen,
 } from './api';
+import { useAuth } from '../auth/useAuth';
 
 type Vista = { tipo: 'lista' } | { tipo: 'nuevo' } | { tipo: 'detalle'; id: number };
 type CamposFiltro = { busqueda: string; estado: string; categoria_id: string; prioridad: string; tecnico_id: string };
@@ -36,6 +37,7 @@ function fechaLegible(fecha: string): string {
 export default function TicketsPage() {
   const [vista, setVista] = useState<Vista>({ tipo: 'lista' });
   const [revision, setRevision] = useState(0);
+  const { usuario } = useAuth();
 
   if (vista.tipo === 'nuevo') {
     return (
@@ -43,7 +45,10 @@ export default function TicketsPage() {
         <button type="button" className="btn btn-link px-0 mb-2" onClick={() => setVista({ tipo: 'lista' })}>
           <ArrowLeft size={17} className="me-1" aria-hidden="true" />Volver al listado
         </button>
-        <TicketCreateForm onCreado={({ id }) => setVista({ tipo: 'detalle', id })} />
+        <TicketCreateForm
+          onCreado={() => setRevision((actual) => actual + 1)}
+          onAbrirTicket={(id) => setVista({ tipo: 'detalle', id })}
+        />
       </div>
     );
   }
@@ -58,6 +63,7 @@ export default function TicketsPage() {
   return (
     <ListadoTickets
       revision={revision}
+      puedeCrear={usuario?.rol === 'agente' || usuario?.rol === 'administrador'}
       onCrear={() => setVista({ tipo: 'nuevo' })}
       onAbrir={(id) => setVista({ tipo: 'detalle', id })}
       onActualizar={() => setRevision((actual) => actual + 1)}
@@ -67,12 +73,13 @@ export default function TicketsPage() {
 
 interface ListadoProps {
   revision: number;
+  puedeCrear: boolean;
   onCrear: () => void;
   onAbrir: (id: number) => void;
   onActualizar: () => void;
 }
 
-function ListadoTickets({ revision, onCrear, onAbrir, onActualizar }: ListadoProps) {
+function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }: ListadoProps) {
   const [tickets, setTickets] = useState<TicketResumen[] | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -140,9 +147,11 @@ function ListadoTickets({ revision, onCrear, onAbrir, onActualizar }: ListadoPro
           <button type="button" className="btn btn-outline-secondary" onClick={onActualizar} title="Actualizar listado" aria-label="Actualizar listado">
             <RefreshCw size={17} aria-hidden="true" />
           </button>
-          <button type="button" className="btn btn-primary" onClick={onCrear}>
-            <Plus size={17} className="me-1" aria-hidden="true" />Nuevo ticket
-          </button>
+          {puedeCrear && (
+            <button type="button" className="btn btn-primary" onClick={onCrear}>
+              <Plus size={17} className="me-1" aria-hidden="true" />Nuevo ticket
+            </button>
+          )}
         </div>
       </div>
 
@@ -215,11 +224,11 @@ function ListadoTickets({ revision, onCrear, onAbrir, onActualizar }: ListadoPro
           <p>{hayFiltros ? 'No hay tickets que coincidan con los filtros seleccionados.' : 'Registra un ticket para iniciar el seguimiento.'}</p>
           {hayFiltros ? (
             <button type="button" className="btn btn-outline-secondary" onClick={limpiarFiltros}>Limpiar filtros</button>
-          ) : (
+          ) : puedeCrear ? (
             <button type="button" className="btn btn-primary" onClick={onCrear}>
               <Plus size={17} className="me-1" aria-hidden="true" />Registrar ticket
             </button>
-          )}
+          ) : <p className="mb-0">No hay tickets disponibles para tu usuario.</p>}
         </div>
       )}
 
@@ -269,6 +278,7 @@ interface DetalleProps {
 }
 
 function DetalleTicket({ id, onVolver }: DetalleProps) {
+  const { usuario } = useAuth();
   const [ticket, setTicket] = useState<TicketDetalle | null>(null);
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -315,6 +325,8 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
     }
 
     const siguiente = ticket ? SIGUIENTE_ESTADO[ticket.estado] : undefined;
+    const puedeCambiarEstado = ticket !== null
+      && (usuario?.rol !== 'tecnico' || ticket.tecnico_id === usuario.id);
 
   return (
     <section className="page-section" aria-labelledby="detalle-ticket-titulo">
@@ -344,14 +356,14 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
           </div>
           <section className="feature-card mt-3" aria-labelledby="estado-ticket-titulo">
             <h3 id="estado-ticket-titulo" className="h6">Estado del ticket</h3>
-            {siguiente && (
+            {siguiente && puedeCambiarEstado && (
               <button type="button" className="btn btn-primary" disabled={actualizandoEstado}
                 onClick={() => void cambiarEstado(siguiente.estado)}>
                 {actualizandoEstado ? 'Actualizando…' : siguiente.etiqueta}
               </button>
             )}
             {ticket.estado === 'Cerrado' && <p className="mb-0">Ticket cerrado. No admite más cambios de estado.</p>}
-            {ticket.estado === 'Resuelto' && (
+            {ticket.estado === 'Resuelto' && puedeCambiarEstado && (
               <form className="mt-3" onSubmit={enviarReapertura}>
                 <label htmlFor="motivo-reapertura" className="form-label">Motivo de reapertura</label>
                 <div className="d-flex flex-column flex-sm-row gap-2">

@@ -42,12 +42,14 @@ const esquemaCambioEstado = z.object({
 export interface OpcionesRutasTickets {
   conexion?: Database.Database;
   requiereAutenticacion?: RequestHandler;
+  protegerEscrituras?: RequestHandler;
   sugerir?: (datos: DatosTicket, conexion: Database.Database) => SugerenciaTicket;
 }
 
 const denegarSinAutenticacion: RequestHandler = (_req, res) => {
   res.status(401).json({ message: 'Inicia sesión para registrar un ticket.' });
 };
+const continuar: RequestHandler = (_req, _res, next) => next();
 
 function usuarioDeSesion(res: Parameters<RequestHandler>[1]): { id: number; rol: string } | null {
   const usuario = res.locals.usuario as { id?: number; rol?: string } | undefined;
@@ -66,6 +68,7 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
   const router = Router();
   const conexion = opciones.conexion ?? conexionPredeterminada;
   const requiereAutenticacion = opciones.requiereAutenticacion ?? denegarSinAutenticacion;
+  const protegerEscrituras = opciones.protegerEscrituras;
 
   router.get('/', requiereAutenticacion, (_req, res) => {
     const usuario = usuarioDeSesion(res);
@@ -148,7 +151,7 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
     res.json({ historial: obtenerHistorial(id, conexion) });
   });
 
-  router.patch('/:id/estado', requiereAutenticacion, (req, res) => {
+  router.patch('/:id/estado', requiereAutenticacion, protegerEscrituras ?? continuar, (req, res) => {
     const usuario = usuarioDeSesion(res);
     if (!usuario) {
       res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
@@ -181,7 +184,17 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
     }
   });
 
-  router.post('/', requiereAutenticacion, (req, res) => {
+  router.post('/', requiereAutenticacion, protegerEscrituras ?? continuar, (req, res) => {
+    const usuario = usuarioDeSesion(res);
+    if (!usuario) {
+      res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
+      return;
+    }
+    if (!['agente', 'administrador'].includes(usuario.rol)) {
+      res.status(403).json({ message: 'No tienes permiso para registrar tickets.' });
+      return;
+    }
+
     const datos = esquemaTicket.safeParse(req.body);
     if (!datos.success) {
       res.status(400).json({
@@ -191,15 +204,9 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
       return;
     }
 
-    const usuario = res.locals.usuario as { id?: number } | undefined;
-    if (!usuario || typeof usuario.id !== 'number' || !Number.isInteger(usuario.id) || usuario.id <= 0) {
-      res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
-      return;
-    }
-
     const sugerencia = opciones.sugerir?.(datos.data, conexion) ?? null;
     const id = crearTicket(datos.data, usuario.id, conexion, sugerencia);
-    res.status(201).json({ id });
+    res.status(201).json({ id, sugerencia });
   });
 
   return router;

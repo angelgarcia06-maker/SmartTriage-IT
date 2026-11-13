@@ -3,13 +3,13 @@
 ## TICK-01: registro
 
 - `TicketCreateForm` presenta los cinco campos requeridos y envía el alta a `POST /api/tickets`.
-- Al crearse, muestra el identificador devuelto por la API; los errores del servidor se muestran junto al formulario.
+- Al crearse, muestra el identificador y el `PanelSugerencia` original para aceptar o corregir la recomendación persistida; las escrituras envían el token CSRF de AUTH-05.
 
 ## TICK-02: listado y detalle
 
 - `TicketsPage` coordina localmente listado, alta y detalle; usa `GET /api/tickets` y `GET /api/tickets/:id`.
 - El listado presenta los datos requeridos y el detalle incluye descripción, solicitante, impacto y urgencia.
-- El Integrante 5 debe montar `TicketsPage` en la navegación global; este módulo no edita `App.tsx`.
+- `TicketsPage` está disponible en `/tickets`; el menú y las acciones se limitan según el rol.
 
 ## TICK-03: filtros y búsqueda
 
