@@ -152,6 +152,12 @@ describe('ADM-04: Dashboard y precisión', () => {
     expect(
       campos.find(c => c.campo === 'tecnico')?.porcentaje
     ).toBe(100);
+    expect(campos).toEqual(expect.arrayContaining([
+      { campo: 'categoria', total: 10, aceptadas: 9, porcentaje: 90 },
+      { campo: 'prioridad', total: 10, aceptadas: 9, porcentaje: 90 },
+      { campo: 'grupo', total: 10, aceptadas: 10, porcentaje: 100 },
+      { campo: 'tecnico', total: 10, aceptadas: 10, porcentaje: 100 },
+    ]));
 
     // Precisión según la categoría sugerida originalmente
     const categorias =

@@ -56,6 +56,7 @@ interface TicketSugerido {
   categoria_sugerida_id: number | null;
   prioridad_sugerida: Prioridad | null;
   grupo_sugerido_id: number | null;
+  tecnico_sugerido_id: number | null;
   tecnico_id: number | null;
   fecha_decision: string | null;
 }
@@ -95,8 +96,6 @@ function validarDecision(conexion: Database.Database, d: DecisionTriaje): void {
  *  - añade una fila al `historial` (nunca lo sobrescribe).
  * Un ticket solo admite una decisión: un segundo intento devuelve 409.
  *
- * Nota: la tabla no tiene `tecnico_sugerido_id`; se toma `tickets.tecnico_id`
- * guardado al crear el ticket (TICK-01) como técnico sugerido.
  */
 export function obtenerDetalleDecision(
   ticketId: number,
@@ -110,6 +109,7 @@ export function obtenerDetalleDecision(
               t.palabra_activadora,
               t.prioridad_sugerida,
               t.grupo_sugerido_id,
+              t.tecnico_sugerido_id,
               t.tecnico_id,
               t.categoria_final_id,
               t.prioridad_final,
@@ -127,6 +127,7 @@ export function obtenerDetalleDecision(
       palabra_activadora: string | null;
       prioridad_sugerida: Prioridad | null;
       grupo_sugerido_id: number | null;
+      tecnico_sugerido_id: number | null;
       tecnico_id: number | null;
       categoria_final_id: number | null;
       prioridad_final: Prioridad | null;
@@ -144,7 +145,7 @@ export function obtenerDetalleDecision(
     es_otros: fila.palabra_activadora == null,
     prioridad: fila.prioridad_sugerida,
     grupo_id: fila.grupo_sugerido_id,
-    tecnico_id: fila.tecnico_id,
+    tecnico_id: fila.tecnico_sugerido_id,
   };
 
   const decision: DecisionTriaje | null = fila.fecha_decision == null
@@ -175,7 +176,8 @@ export function registrarDecision(
   const ejecutar = conexion.transaction((): ResultadoDecision => {
     const ticket = conexion
       .prepare(
-        `SELECT id, categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id, tecnico_id, fecha_decision
+        `SELECT id, categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id,
+                tecnico_sugerido_id, tecnico_id, fecha_decision
            FROM tickets WHERE id = ?`,
       )
       .get(ticketId) as TicketSugerido | undefined;
@@ -187,7 +189,7 @@ export function registrarDecision(
       ['categoria', ticket.categoria_sugerida_id, decision.categoria_final_id],
       ['prioridad', ticket.prioridad_sugerida, decision.prioridad_final],
       ['grupo', ticket.grupo_sugerido_id, decision.grupo_final_id],
-      ['tecnico', ticket.tecnico_id, decision.tecnico_id],
+      ['tecnico', ticket.tecnico_sugerido_id, decision.tecnico_id],
     ];
     const correcciones = comparaciones
       .filter(([, sugerido, final]) => aTexto(sugerido) !== aTexto(final))
@@ -222,7 +224,7 @@ export function registrarDecision(
           categoria_id: ticket.categoria_sugerida_id,
           prioridad: ticket.prioridad_sugerida,
           grupo_id: ticket.grupo_sugerido_id,
-          tecnico_id: ticket.tecnico_id,
+          tecnico_id: ticket.tecnico_sugerido_id,
         }),
         JSON.stringify(decision),
         fecha,

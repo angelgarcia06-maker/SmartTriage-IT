@@ -281,6 +281,7 @@ interface DetalleProps {
 
 function DetalleTicket({ id, onVolver }: DetalleProps) {
   const { usuario } = useAuth();
+  const puedeConsultarCatalogos = usuario?.rol === 'agente' || usuario?.rol === 'administrador';
   const [ticket, setTicket] = useState<TicketDetalle | null>(null);
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [decision, setDecision] = useState<Awaited<ReturnType<typeof obtenerDecisionTicket>> | null>(null);
@@ -296,24 +297,34 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
     let vigente = true;
     setCargando(true);
     setError('');
-    Promise.allSettled([obtenerTicket(id), obtenerHistorial(id), obtenerDecisionTicket(id), obtenerCatalogos()])
-      .then((resultados) => {
+    Promise.all([
+      Promise.allSettled([obtenerTicket(id), obtenerHistorial(id), obtenerDecisionTicket(id)]),
+      puedeConsultarCatalogos ? Promise.allSettled([obtenerCatalogos()]) : Promise.resolve(null),
+    ])
+      .then(([resultados, catalogosResultados]) => {
         if (!vigente) return;
         const ticketResultado = resultados[0];
         const historialResultado = resultados[1];
         const decisionResultado = resultados[2];
-        const catalogosResultado = resultados[3];
+        const errores: string[] = [];
 
         if (ticketResultado.status === 'fulfilled') setTicket(ticketResultado.value);
-        else setError(ticketResultado.reason instanceof Error ? ticketResultado.reason.message : 'No se pudo cargar el ticket.');
+        else errores.push(ticketResultado.reason instanceof Error ? ticketResultado.reason.message : 'No se pudo cargar el ticket.');
 
         if (historialResultado.status === 'fulfilled') setHistorial(historialResultado.value);
+        else errores.push(historialResultado.reason instanceof Error ? historialResultado.reason.message : 'No se pudo cargar el historial.');
         if (decisionResultado.status === 'fulfilled') setDecision(decisionResultado.value);
-        if (catalogosResultado.status === 'fulfilled') setCatalogos(catalogosResultado.value);
+        else errores.push(decisionResultado.reason instanceof Error ? decisionResultado.reason.message : 'No se pudo cargar la decisión del ticket.');
+        const catalogosResultado = catalogosResultados?.[0];
+        if (catalogosResultado?.status === 'fulfilled') setCatalogos(catalogosResultado.value);
+        else if (catalogosResultado?.status === 'rejected') {
+          errores.push(catalogosResultado.reason instanceof Error ? catalogosResultado.reason.message : 'No se pudieron cargar los catálogos.');
+        }
+        setError(errores.join(' '));
       })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
-    }, [id, revision]);
+    }, [id, revision, puedeConsultarCatalogos]);
 
     async function cambiarEstado(estado: EstadoTicket, motivo?: string) {
       setActualizandoEstado(true);
@@ -364,7 +375,7 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
               <dt className="col-sm-3">Descripción</dt><dd className="col-sm-9" style={{ whiteSpace: 'pre-wrap' }}>{ticket.descripcion}</dd>
             </dl>
           </div>
-          {decision && catalogos && decision.pendiente && (usuario?.rol === 'agente' || usuario?.rol === 'administrador' || (usuario?.rol === 'tecnico' && ticket.tecnico_id === usuario.id)) && (
+          {decision && catalogos && decision.pendiente && puedeConsultarCatalogos && (
             <div className="mt-3">
               <PanelSugerencia
                 ticketId={ticket.id}

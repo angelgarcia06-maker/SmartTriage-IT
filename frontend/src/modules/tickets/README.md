@@ -10,6 +10,8 @@
 - `TicketsPage` coordina localmente listado, alta y detalle; usa `GET /api/tickets` y `GET /api/tickets/:id`.
 - El listado presenta los datos requeridos y el detalle incluye descripción, solicitante, impacto y urgencia.
 - `TicketsPage` está disponible en `/tickets`; el menú y las acciones se limitan según el rol.
+- El detalle recupera las decisiones para agentes, administradores y técnicos asignados; solo los dos primeros roles consultan catálogos y pueden confirmar o corregir una sugerencia.
+- La confirmación conserva el técnico sugerido original; la decisión final y su historial se muestran después de recargar.
 
 ## TICK-03: filtros y búsqueda
 

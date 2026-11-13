@@ -6,6 +6,7 @@ import { obtenerMetricas } from '../modules/admin/metricas.service';
 import { cambiarEstadoTicket, crearTicket, type DatosTicket, type EstadoTicket } from '../modules/tickets/tickets.service';
 import { recomendarTecnico, sugerir } from '../modules/triaje/sugerir';
 import { registrarDecision } from '../modules/triaje/decision';
+import { aplicarMigraciones } from './migrations';
 
 const repoRoot = path.resolve(__dirname, '../../..');
 const rutaDatos = path.join(repoRoot, 'data');
@@ -190,6 +191,7 @@ function validarResumen(resultado: ResumenSeed): void {
 function crearDatosDemo(db: Database.Database): void {
   const esquema = fs.readFileSync(rutaEsquema, 'utf8');
   db.exec(esquema);
+  aplicarMigraciones(db);
   db.exec(`
     CREATE TABLE smarttriage_demo_meta (
       clave TEXT PRIMARY KEY,

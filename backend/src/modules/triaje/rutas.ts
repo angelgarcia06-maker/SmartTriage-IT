@@ -27,6 +27,8 @@ export interface OpcionesRutasTriaje {
   conexion?: Database.Database;
   /** Middleware de roles de AUTH. */
   requiereRol?: (...roles: RolAuth[]) => RequestHandler;
+  /** Token CSRF de AUTH para las operaciones de escritura. */
+  protegerEscrituras?: RequestHandler;
 }
 
 /**
@@ -34,10 +36,13 @@ export interface OpcionesRutasTriaje {
  *   app.use('/api', crearRutasTriaje({ requiereRol: roleRequired }));
  * Expone:
  *   POST /api/triaje/sugerir          (agente, administrador)
+ *   GET /api/tickets/:id/decision     (agente, administrador, técnico asignado)
  *   POST /api/tickets/:id/decision    (agente, administrador)
+ * Las escrituras requieren origen confiable y token CSRF desde app.ts.
  */
 export function crearRutasTriaje(opciones: OpcionesRutasTriaje = {}): Router {
   const requiereRol = opciones.requiereRol ?? roleRequired;
+  const protegerEscrituras = opciones.protegerEscrituras ?? ((_req, _res, next) => next());
   const bd = () => opciones.conexion ?? conexionPredeterminada;
   const router = Router();
 
@@ -55,7 +60,7 @@ export function crearRutasTriaje(opciones: OpcionesRutasTriaje = {}): Router {
     res.json({ categorias, grupos, tecnicos });
   });
 
-  router.post('/triaje/sugerir', requiereRol('agente', 'administrador'), (req, res) => {
+  router.post('/triaje/sugerir', requiereRol('agente', 'administrador'), protegerEscrituras, (req, res) => {
     const datos = esquemaSugerir.safeParse(req.body);
     if (!datos.success) {
       res.status(400).json({ message: 'Datos inválidos.', errores: datos.error.flatten().fieldErrors });
@@ -89,7 +94,7 @@ export function crearRutasTriaje(opciones: OpcionesRutasTriaje = {}): Router {
     res.json(detalle);
   });
 
-  router.post('/tickets/:id/decision', requiereRol('agente', 'administrador'), (req, res) => {
+  router.post('/tickets/:id/decision', requiereRol('agente', 'administrador'), protegerEscrituras, (req, res) => {
     const ticketId = Number(req.params.id);
     if (!Number.isInteger(ticketId) || ticketId <= 0) {
       res.status(400).json({ message: 'Id de ticket inválido.' });
