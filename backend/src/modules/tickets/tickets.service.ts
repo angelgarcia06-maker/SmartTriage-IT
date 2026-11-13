@@ -24,10 +24,20 @@ export interface TicketResumen {
   id: number;
   titulo: string;
   estado: string;
+  categoria_sugerida_id: number | null;
   categoria_sugerida: string | null;
   prioridad_sugerida: string | null;
+  tecnico_id: number | null;
   tecnico: string | null;
   fecha_creacion: string;
+}
+
+export interface FiltrosTickets {
+  busqueda?: string;
+  estado?: string;
+  categoriaId?: number;
+  prioridad?: string;
+  tecnicoId?: number;
 }
 
 export interface TicketDetalle extends TicketResumen {
@@ -43,16 +53,49 @@ const joinsTicket = `
   LEFT JOIN usuarios tecnico ON tecnico.id = t.tecnico_id`;
 const camposResumen = `
   t.id, t.titulo, t.estado,
+  t.categoria_sugerida_id,
   c.nombre AS categoria_sugerida,
   t.prioridad_sugerida,
+  t.tecnico_id,
   tecnico.nombre AS tecnico,
   t.fecha_creacion`;
 
-export function listarTickets(conexion: Database.Database, tecnicoId?: number): TicketResumen[] {
-  const filtroTecnico = tecnicoId === undefined ? '' : ' WHERE t.tecnico_id = ?';
+export function listarTickets(
+  conexion: Database.Database,
+  tecnicoSesionId?: number,
+  filtros: FiltrosTickets = {},
+): TicketResumen[] {
+  const condiciones: string[] = [];
+  const parametros: (string | number)[] = [];
+  if (tecnicoSesionId !== undefined) {
+    condiciones.push('t.tecnico_id = ?');
+    parametros.push(tecnicoSesionId);
+  }
+  if (filtros.busqueda !== undefined) {
+    condiciones.push('(CAST(t.id AS TEXT) = ? OR t.titulo LIKE ? COLLATE NOCASE OR t.solicitante LIKE ? COLLATE NOCASE)');
+    const termino = `%${filtros.busqueda}%`;
+    parametros.push(filtros.busqueda, termino, termino);
+  }
+  if (filtros.estado !== undefined) {
+    condiciones.push('t.estado = ?');
+    parametros.push(filtros.estado);
+  }
+  if (filtros.categoriaId !== undefined) {
+    condiciones.push('t.categoria_sugerida_id = ?');
+    parametros.push(filtros.categoriaId);
+  }
+  if (filtros.prioridad !== undefined) {
+    condiciones.push('t.prioridad_sugerida = ?');
+    parametros.push(filtros.prioridad);
+  }
+  if (filtros.tecnicoId !== undefined) {
+    condiciones.push('t.tecnico_id = ?');
+    parametros.push(filtros.tecnicoId);
+  }
+  const where = condiciones.length ? ` WHERE ${condiciones.join(' AND ')}` : '';
   const orden = ' ORDER BY t.fecha_creacion DESC, t.id DESC';
-  const consulta = conexion.prepare(`SELECT ${camposResumen}${joinsTicket}${filtroTecnico}${orden}`);
-  return (tecnicoId === undefined ? consulta.all() : consulta.all(tecnicoId)) as TicketResumen[];
+  const consulta = conexion.prepare(`SELECT ${camposResumen}${joinsTicket}${where}${orden}`);
+  return consulta.all(...parametros) as TicketResumen[];
 }
 
 export function obtenerTicket(

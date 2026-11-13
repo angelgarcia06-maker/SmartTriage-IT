@@ -7,8 +7,13 @@ import {
   listarTickets,
   obtenerTicket,
   type DatosTicket,
+  type FiltrosTickets,
   type SugerenciaTicket,
 } from './tickets.service';
+
+const ESTADOS_TICKET = ['Nuevo', 'Asignado', 'En proceso', 'Resuelto', 'Cerrado'] as const;
+const PRIORIDADES_TICKET = ['Crítica', 'Alta', 'Media', 'Baja'] as const;
+const idFiltro = z.string().regex(/^[1-9]\d*$/).transform(Number).refine(Number.isSafeInteger);
 
 const esquemaTicket = z.object({
   solicitante: z.string().trim().min(1).max(120),
@@ -16,6 +21,14 @@ const esquemaTicket = z.object({
   descripcion: z.string().trim().min(1).max(5000),
   impacto: z.enum(['Alto', 'Medio', 'Bajo']),
   urgencia: z.enum(['Alta', 'Media', 'Baja']),
+}).strict();
+
+const esquemaFiltros = z.object({
+  busqueda: z.string().trim().min(1).max(120).optional(),
+  estado: z.enum(ESTADOS_TICKET).optional(),
+  categoria_id: idFiltro.optional(),
+  prioridad: z.enum(PRIORIDADES_TICKET).optional(),
+  tecnico_id: idFiltro.optional(),
 }).strict();
 
 export interface OpcionesRutasTickets {
@@ -57,8 +70,24 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
       return;
     }
 
+    const parametros = esquemaFiltros.safeParse(_req.query);
+    if (!parametros.success) {
+      res.status(400).json({
+        message: 'Filtros inválidos.',
+        errores: parametros.error.flatten().fieldErrors,
+      });
+      return;
+    }
+
     const tecnicoId = usuario.rol === 'tecnico' ? usuario.id : undefined;
-    res.json({ tickets: listarTickets(conexion, tecnicoId) });
+    const filtros: FiltrosTickets = {
+      busqueda: parametros.data.busqueda,
+      estado: parametros.data.estado,
+      categoriaId: parametros.data.categoria_id,
+      prioridad: parametros.data.prioridad,
+      tecnicoId: parametros.data.tecnico_id,
+    };
+    res.json({ tickets: listarTickets(conexion, tecnicoId, filtros) });
   });
 
   router.get('/:id', requiereAutenticacion, (req, res) => {

@@ -1,9 +1,15 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, Plus, RefreshCw, Ticket } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { ArrowLeft, ArrowUpRight, Plus, RefreshCw, Search, Ticket, X } from 'lucide-react';
+import type { EstadoTicket, Prioridad } from '../../../../shared/types/triaje.types';
 import TicketCreateForm from './TicketCreateForm';
-import { listarTickets, obtenerTicket, type TicketDetalle, type TicketResumen } from './api';
+import { listarTickets, obtenerTicket, type FiltrosTickets, type TicketDetalle, type TicketResumen } from './api';
 
 type Vista = { tipo: 'lista' } | { tipo: 'nuevo' } | { tipo: 'detalle'; id: number };
+type CamposFiltro = { busqueda: string; estado: string; categoria_id: string; prioridad: string; tecnico_id: string };
+
+const ESTADOS: EstadoTicket[] = ['Nuevo', 'Asignado', 'En proceso', 'Resuelto', 'Cerrado'];
+const PRIORIDADES: Prioridad[] = ['Crítica', 'Alta', 'Media', 'Baja'];
+const CAMPOS_FILTRO_VACIOS: CamposFiltro = { busqueda: '', estado: '', categoria_id: '', prioridad: '', tecnico_id: '' };
 
 function fechaLegible(fecha: string): string {
   const valor = new Date(fecha);
@@ -55,19 +61,57 @@ function ListadoTickets({ revision, onCrear, onAbrir, onActualizar }: ListadoPro
   const [tickets, setTickets] = useState<TicketResumen[] | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
+  const [criterios, setCriterios] = useState<FiltrosTickets>({});
+  const [camposFiltro, setCamposFiltro] = useState<CamposFiltro>(CAMPOS_FILTRO_VACIOS);
+  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([]);
+  const [tecnicos, setTecnicos] = useState<{ id: number; nombre: string }[]>([]);
+  const hayFiltros = Object.values(criterios).some((valor) => valor !== undefined);
 
   useEffect(() => {
     let vigente = true;
     setCargando(true);
     setError('');
-    listarTickets()
-      .then((resultado) => { if (vigente) setTickets(resultado); })
+    listarTickets(criterios)
+      .then((resultado) => {
+        if (!vigente) return;
+        setTickets(resultado);
+        if (!hayFiltros) {
+          const opcionesCategoria = new Map<number, string>();
+          const opcionesTecnico = new Map<number, string>();
+          resultado.forEach((ticket) => {
+            if (ticket.categoria_sugerida_id !== null && ticket.categoria_sugerida) {
+              opcionesCategoria.set(ticket.categoria_sugerida_id, ticket.categoria_sugerida);
+            }
+            if (ticket.tecnico_id !== null && ticket.tecnico) {
+              opcionesTecnico.set(ticket.tecnico_id, ticket.tecnico);
+            }
+          });
+          setCategorias([...opcionesCategoria].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+          setTecnicos([...opcionesTecnico].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+        }
+      })
       .catch((err: unknown) => {
         if (vigente) setError(err instanceof Error ? err.message : 'No se pudieron cargar los tickets.');
       })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
-  }, [revision]);
+  }, [criterios, hayFiltros, revision]);
+
+  function enviarFiltros(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    const nuevos: FiltrosTickets = {};
+    if (camposFiltro.busqueda.trim()) nuevos.busqueda = camposFiltro.busqueda.trim();
+    if (camposFiltro.estado) nuevos.estado = camposFiltro.estado as EstadoTicket;
+    if (camposFiltro.categoria_id) nuevos.categoria_id = Number(camposFiltro.categoria_id);
+    if (camposFiltro.prioridad) nuevos.prioridad = camposFiltro.prioridad as Prioridad;
+    if (camposFiltro.tecnico_id) nuevos.tecnico_id = Number(camposFiltro.tecnico_id);
+    setCriterios(nuevos);
+  }
+
+  function limpiarFiltros() {
+    setCamposFiltro(CAMPOS_FILTRO_VACIOS);
+    setCriterios({});
+  }
 
   return (
     <section className="page-section" aria-labelledby="lista-tickets-titulo">
@@ -87,6 +131,62 @@ function ListadoTickets({ revision, onCrear, onAbrir, onActualizar }: ListadoPro
         </div>
       </div>
 
+      <form className="feature-card mb-3" onSubmit={enviarFiltros}>
+        <div className="row g-3 align-items-end">
+          <div className="col-md-4">
+            <label htmlFor="tickets-busqueda" className="form-label">Buscar</label>
+            <input
+              id="tickets-busqueda"
+              className="form-control"
+              maxLength={120}
+              placeholder="ID, título o solicitante"
+              value={camposFiltro.busqueda}
+              onChange={(evento) => setCamposFiltro({ ...camposFiltro, busqueda: evento.target.value })}
+            />
+          </div>
+          <div className="col-sm-6 col-md-2">
+            <label htmlFor="tickets-estado" className="form-label">Estado</label>
+            <select id="tickets-estado" className="form-select" value={camposFiltro.estado}
+              onChange={(evento) => setCamposFiltro({ ...camposFiltro, estado: evento.target.value })}>
+              <option value="">Todos</option>
+              {ESTADOS.map((estado) => <option key={estado} value={estado}>{estado}</option>)}
+            </select>
+          </div>
+          <div className="col-sm-6 col-md-2">
+            <label htmlFor="tickets-categoria" className="form-label">Categoría</label>
+            <select id="tickets-categoria" className="form-select" value={camposFiltro.categoria_id}
+              onChange={(evento) => setCamposFiltro({ ...camposFiltro, categoria_id: evento.target.value })}>
+              <option value="">Todas</option>
+              {categorias.map((categoria) => <option key={categoria.id} value={categoria.id}>{categoria.nombre}</option>)}
+            </select>
+          </div>
+          <div className="col-sm-6 col-md-2">
+            <label htmlFor="tickets-prioridad" className="form-label">Prioridad</label>
+            <select id="tickets-prioridad" className="form-select" value={camposFiltro.prioridad}
+              onChange={(evento) => setCamposFiltro({ ...camposFiltro, prioridad: evento.target.value })}>
+              <option value="">Todas</option>
+              {PRIORIDADES.map((prioridad) => <option key={prioridad} value={prioridad}>{prioridad}</option>)}
+            </select>
+          </div>
+          <div className="col-sm-6 col-md-2">
+            <label htmlFor="tickets-tecnico" className="form-label">Técnico</label>
+            <select id="tickets-tecnico" className="form-select" value={camposFiltro.tecnico_id}
+              onChange={(evento) => setCamposFiltro({ ...camposFiltro, tecnico_id: evento.target.value })}>
+              <option value="">Todos</option>
+              {tecnicos.map((tecnico) => <option key={tecnico.id} value={tecnico.id}>{tecnico.nombre}</option>)}
+            </select>
+          </div>
+          <div className="col-12 d-flex justify-content-end gap-2">
+            <button type="button" className="btn btn-outline-secondary" onClick={limpiarFiltros} disabled={!hayFiltros && Object.values(camposFiltro).every((valor) => !valor)}>
+              <X size={16} className="me-1" aria-hidden="true" />Limpiar
+            </button>
+            <button type="submit" className="btn btn-primary">
+              <Search size={16} className="me-1" aria-hidden="true" />Aplicar filtros
+            </button>
+          </div>
+        </div>
+      </form>
+
       {cargando && <p role="status">Cargando tickets…</p>}
       {error && (
         <div className="alert alert-danger" role="alert">
@@ -96,11 +196,15 @@ function ListadoTickets({ revision, onCrear, onAbrir, onActualizar }: ListadoPro
 
       {!cargando && !error && tickets?.length === 0 && (
         <div className="empty-state">
-          <h3 className="h6">Aún no hay tickets</h3>
-          <p>Registra un ticket para iniciar el seguimiento.</p>
-          <button type="button" className="btn btn-primary" onClick={onCrear}>
-            <Plus size={17} className="me-1" aria-hidden="true" />Registrar ticket
-          </button>
+          <h3 className="h6">{hayFiltros ? 'Sin coincidencias' : 'Aún no hay tickets'}</h3>
+          <p>{hayFiltros ? 'No hay tickets que coincidan con los filtros seleccionados.' : 'Registra un ticket para iniciar el seguimiento.'}</p>
+          {hayFiltros ? (
+            <button type="button" className="btn btn-outline-secondary" onClick={limpiarFiltros}>Limpiar filtros</button>
+          ) : (
+            <button type="button" className="btn btn-primary" onClick={onCrear}>
+              <Plus size={17} className="me-1" aria-hidden="true" />Registrar ticket
+            </button>
+          )}
         </div>
       )}
 

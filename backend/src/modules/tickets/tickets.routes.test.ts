@@ -31,13 +31,24 @@ function crearApp(conAutenticacion = true, usuario = usuarioSesion) {
   return app;
 }
 
-function insertarTicket(titulo: string, tecnicoId: number | null): number {
+function insertarTicket(
+  titulo: string,
+  tecnicoId: number | null,
+  opciones: { solicitante?: string; estado?: string; categoriaId?: number | null; prioridad?: string | null } = {},
+): number {
   const resultado = conexion.prepare(`
     INSERT INTO tickets (
       solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por,
       tecnico_id, categoria_sugerida_id, prioridad_sugerida
-    ) VALUES ('Ana', ?, 'Detalle de prueba', 'Alto', 'Alta', 'Nuevo', 7, ?, 3, 'Alta')
-  `).run(titulo, tecnicoId);
+    ) VALUES (?, ?, 'Detalle de prueba', 'Alto', 'Alta', ?, 7, ?, ?, ?)
+  `).run(
+    opciones.solicitante ?? 'Ana',
+    titulo,
+    opciones.estado ?? 'Nuevo',
+    tecnicoId,
+    opciones.categoriaId === undefined ? 3 : opciones.categoriaId,
+    opciones.prioridad === undefined ? 'Alta' : opciones.prioridad,
+  );
   return Number(resultado.lastInsertRowid);
 }
 
@@ -47,8 +58,10 @@ beforeEach(() => {
     CREATE TABLE usuarios (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, rol TEXT NOT NULL);
     INSERT INTO usuarios (id, nombre, rol) VALUES (7, 'Agente de prueba', 'agente');
     INSERT INTO usuarios (id, nombre, rol) VALUES (9, 'Técnico de prueba', 'tecnico');
+    INSERT INTO usuarios (id, nombre, rol) VALUES (11, 'Otro técnico', 'tecnico');
     CREATE TABLE categorias (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL);
     INSERT INTO categorias (id, nombre) VALUES (3, 'Redes');
+    INSERT INTO categorias (id, nombre) VALUES (4, 'Hardware');
     CREATE TABLE tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       solicitante TEXT NOT NULL,
@@ -148,6 +161,56 @@ describe('GET /api/tickets', () => {
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([asignadoId]);
+  });
+
+  it('combina búsqueda y todos los filtros en una misma consulta', async () => {
+    const objetivo = insertarTicket('Intermitencia de red', 9, { solicitante: 'Ana López' });
+    insertarTicket('Mismo solicitante, estado distinto', 9, { solicitante: 'Ana López', estado: 'Asignado' });
+    insertarTicket('Otra categoría', 9, { solicitante: 'Ana López', categoriaId: 4 });
+    insertarTicket('Otra prioridad', 9, { solicitante: 'Ana López', prioridad: 'Crítica' });
+    insertarTicket('Otro técnico', 11, { solicitante: 'Ana López' });
+
+    const respuesta = await request(crearApp()).get('/api/tickets').query({
+      busqueda: 'Ana López',
+      estado: 'Nuevo',
+      categoria_id: '3',
+      prioridad: 'Alta',
+      tecnico_id: '9',
+    });
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([objetivo]);
+  });
+
+  it('busca por ID, título o solicitante', async () => {
+    const ticketId = insertarTicket('Conexión intermitente', 9, { solicitante: 'María Torres' });
+
+    const porId = await request(crearApp()).get('/api/tickets').query({ busqueda: String(ticketId) });
+    const porTitulo = await request(crearApp()).get('/api/tickets').query({ busqueda: 'intermitente' });
+    const porSolicitante = await request(crearApp()).get('/api/tickets').query({ busqueda: 'María' });
+
+    expect(porId.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([ticketId]);
+    expect(porTitulo.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([ticketId]);
+    expect(porSolicitante.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([ticketId]);
+  });
+
+  it('rechaza parámetros inválidos y no permite ampliar el alcance del técnico', async () => {
+    const ticketId = insertarTicket('Asignado a técnico', 9);
+    const app = crearApp();
+    const tecnico = crearApp(true, { id: 9, rol: 'tecnico' });
+    const estadosInvalidos = await Promise.all([
+      request(app).get('/api/tickets').query({ estado: 'En espera' }),
+      request(app).get('/api/tickets').query({ categoria_id: 'abc' }),
+      request(app).get('/api/tickets').query({ prioridad: 'Urgente' }),
+      request(app).get('/api/tickets').query({ tecnico_id: '-9' }),
+      request(app).get('/api/tickets').query({ desconocido: 'valor' }),
+    ]);
+    const fueraDeAlcance = await request(tecnico).get('/api/tickets').query({ tecnico_id: '11' });
+    const propio = await request(tecnico).get('/api/tickets').query({ tecnico_id: '9' });
+
+    expect(estadosInvalidos.map((respuesta) => respuesta.status)).toEqual([400, 400, 400, 400, 400]);
+    expect(fueraDeAlcance.body.tickets).toEqual([]);
+    expect(propio.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([ticketId]);
   });
 
   it('responde 401 sin sesión y 403 con rol no autorizado', async () => {

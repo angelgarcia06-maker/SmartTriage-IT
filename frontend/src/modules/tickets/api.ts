@@ -1,5 +1,5 @@
 import { API } from '../../../../shared/contracts/api.contract';
-import type { DatosTicket } from '../../../../shared/types/triaje.types';
+import type { DatosTicket, EstadoTicket, Impacto, Prioridad, Urgencia } from '../../../../shared/types/triaje.types';
 
 export interface TicketCreado {
   id: number;
@@ -8,9 +8,11 @@ export interface TicketCreado {
 export interface TicketResumen {
   id: number;
   titulo: string;
-  estado: string;
+  estado: EstadoTicket;
+  categoria_sugerida_id: number | null;
   categoria_sugerida: string | null;
-  prioridad_sugerida: string | null;
+  prioridad_sugerida: Prioridad | null;
+  tecnico_id: number | null;
   tecnico: string | null;
   fecha_creacion: string;
 }
@@ -18,8 +20,16 @@ export interface TicketResumen {
 export interface TicketDetalle extends TicketResumen {
   solicitante: string;
   descripcion: string;
-  impacto: string;
-  urgencia: string;
+  impacto: Impacto;
+  urgencia: Urgencia;
+}
+
+export interface FiltrosTickets {
+  busqueda?: string;
+  estado?: EstadoTicket;
+  categoria_id?: number;
+  prioridad?: Prioridad;
+  tecnico_id?: number;
 }
 
 async function consultar<T>(url: string): Promise<T> {
@@ -47,8 +57,16 @@ export async function registrarTicket(datos: DatosTicket): Promise<TicketCreado>
   return cuerpo as TicketCreado;
 }
 
-export async function listarTickets(): Promise<TicketResumen[]> {
-  const respuesta = await consultar<{ tickets: TicketResumen[] }>(API.tickets.list);
+export async function listarTickets(filtros: FiltrosTickets = {}): Promise<TicketResumen[]> {
+  const parametros = new URLSearchParams();
+  if (filtros.busqueda) parametros.set('busqueda', filtros.busqueda);
+  if (filtros.estado) parametros.set('estado', filtros.estado);
+  if (filtros.categoria_id !== undefined) parametros.set('categoria_id', String(filtros.categoria_id));
+  if (filtros.prioridad) parametros.set('prioridad', filtros.prioridad);
+  if (filtros.tecnico_id !== undefined) parametros.set('tecnico_id', String(filtros.tecnico_id));
+  const query = parametros.toString();
+  const url = query ? `${API.tickets.list}?${query}` : API.tickets.list;
+  const respuesta = await consultar<{ tickets: TicketResumen[] }>(url);
   return respuesta.tickets;
 }
 
