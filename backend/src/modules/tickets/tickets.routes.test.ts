@@ -276,16 +276,16 @@ describe('PATCH /api/tickets/:id/estado y GET /api/tickets/:id/historial', () =>
     const agente = crearApp();
     const tecnico = crearApp(true, { id: 9, rol: 'tecnico' });
 
-    const asignado = await agente.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
-    const enProceso = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
-    const resuelto = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
-    const reaperturaInvalida = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
-    const reabierto = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({
+    const asignado = await request(agente).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
+    const enProceso = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
+    const resuelto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const reaperturaInvalida = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
+    const reabierto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({
       estado: 'En proceso',
       motivo: 'La falla volvió después de la solución.',
     });
-    const resueltoDeNuevo = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
-    const cerrado = await agente.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Cerrado' });
+    const resueltoDeNuevo = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const cerrado = await request(agente).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Cerrado' });
     const historial = await request(agente).get(`/api/tickets/${ticketId}/historial`);
 
     expect([asignado.status, enProceso.status, resuelto.status]).toEqual([200, 200, 200]);
