@@ -14,7 +14,7 @@ export interface UsuarioRow {
   grupo_id: number | null;
 }
 
-/** DTO público: NUNCA incluye password_hash. */
+/** DTO público (AUTH-01): NUNCA incluye password_hash. */
 export interface UsuarioPublico {
   id: number;
   nombre: string;
@@ -22,4 +22,13 @@ export interface UsuarioPublico {
   rol: RolAuth;
   activo: boolean;
   grupo_id: number | null;
+}
+
+/** DTO de sesión (AUTH-02): { id, nombre, usuario, rol, grupo_id }. */
+export type UsuarioSesion = Omit<UsuarioPublico, 'activo'>;
+
+declare module 'express-session' {
+  interface SessionData {
+    userId?: number;
+  }
 }
