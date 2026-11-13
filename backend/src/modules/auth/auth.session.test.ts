@@ -11,6 +11,9 @@ app.use('/api/auth', authRouter);
 
 const CLAVE = 'Cambiar123!';
 
+// Base en memoria (ver src/test/setup.ts): los usuarios de prueba se crean y
+// eliminan aquí, sin afectar data/smarttriage.db.
+
 describe('AUTH-02: login, logout y sesión', () => {
   afterAll(() => {
     db.prepare("DELETE FROM usuarios WHERE usuario = 'inactivo_test'").run();

@@ -13,6 +13,8 @@ app.use('/api/usuarios', usuariosRouter);
 const CLAVE = 'Cambiar123!';
 type Agente = ReturnType<typeof request.agent>;
 
+// Base en memoria (ver src/test/setup.ts): los usuarios zz_test_* viven solo
+// durante la prueba y nunca llegan a data/smarttriage.db.
 const limpiar = () => db.prepare("DELETE FROM usuarios WHERE usuario LIKE 'zz_test_%'").run();
 let contador = 0;
 const nuevoNombre = () => `zz_test_${Date.now().toString(36)}_${contador++}`;

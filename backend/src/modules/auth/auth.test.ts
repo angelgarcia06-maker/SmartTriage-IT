@@ -9,9 +9,9 @@ import { aDtoPublico, obtenerUsuarioPorId, obtenerUsuarioPorUsuario } from './au
 /**
  * Pruebas de AUTH-01.
  *
- * Las pruebas de repositorio/API usan la base local `data/smarttriage.db`
- * (creada con `npm run db:init` y `npm run db:seed`) en modo solo lectura.
- * Requieren que el seed exista; no modifican datos ni borran la base.
+ * Corren contra una base SQLite EN MEMORIA con el seed aplicado
+ * (`vitest.config.ts` + `src/test/setup.ts`). No usan ni modifican
+ * `data/smarttriage.db`.
  */
 
 /** Router por defecto: sin middlewares inyectados debe fallar cerrado. */

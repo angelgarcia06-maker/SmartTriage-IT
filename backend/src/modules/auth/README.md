@@ -1,92 +1,126 @@
-# Auth — AUTH-01 (base de usuarios)
+# Auth — AUTH-01..04 (usuarios, sesión, roles y administración)
 
-Módulo del Integrante 1. En esta rama solo está implementado **AUTH-01**: lectura de usuarios y DTO público. El login/logout/sesión (AUTH-02) y los middlewares de autorización (AUTH-03) todavía no forman parte de este PR.
+Módulo del Integrante 1. En esta rama está implementado y **montado en `app.ts`**:
+AUTH-01 (base de usuarios), AUTH-02 (login/logout/sesión), AUTH-03 (roles) y
+AUTH-04 (administración de usuarios).
 
-## Qué implementa AUTH-01
+## Integración en `backend/src/app.ts`
 
-| Capa | Archivo | Responsabilidad |
+```ts
+app.use('/api/auth', csrfProtection, authRouterCompleto); // login/logout/me + usuarios
+app.use('/api/usuarios', csrfProtection, usuariosRouter); // administración (solo admin)
+```
+
+Se conservan `/api/health`, CORS (`origin: http://localhost:5173`, `credentials`)
+y la configuración de Express. En producción se activa `app.set('trust proxy', 1)`
+para que la cookie `secure: 'auto'` funcione tras un proxy inverso.
+
+| Método y ruta | Acceso | Descripción |
 |---|---|---|
-| Repositorio | `auth.repository.ts` | Consultas SQL **parametrizadas** a `usuarios` por `usuario` o `id`. Devuelve la fila interna (incluye `password_hash`). |
-| Servicio | `auth.service.ts` | Convierte la fila en `UsuarioPublico`; **nunca** expone `password_hash`. |
-| Controlador | `auth.controller.ts` | Valida el parámetro de entrada y responde 400/404/200. |
-| Rutas | `auth.routes.ts` | Expone las consultas bajo middlewares inyectables y **fail-closed**. |
+| `POST /api/auth/login` | público | Autentica, regenera la sesión y fija la cookie. |
+| `POST /api/auth/logout` | sesión | Destruye la sesión y limpia la cookie. |
+| `GET /api/auth/me` | sesión | Usuario de la sesión (`UsuarioSesion`). |
+| `GET /api/auth/usuarios/:id` | administrador | Usuario por id (sin `password_hash`). |
+| `GET /api/auth/usuarios/por-usuario/:usuario` | administrador | Usuario por nombre. |
+| `GET /api/usuarios` | administrador | Lista de usuarios. |
+| `GET /api/usuarios/grupos` | administrador | Grupos activos. |
+| `POST /api/usuarios` | administrador | Alta de usuario. |
+| `PATCH /api/usuarios/:id` | administrador | Edición / desactivación (`activo:false`). |
 
-### Servicios
+No existe `DELETE`: los usuarios se desactivan. Un administrador no puede
+desactivarse ni quitarse el rol, y siempre debe quedar al menos un administrador activo.
 
-```ts
-import { obtenerUsuarioPorId, obtenerUsuarioPorUsuario } from './auth.service';
+## Seguridad
 
-obtenerUsuarioPorId(1);            // UsuarioPublico | null
-obtenerUsuarioPorUsuario('admin'); // UsuarioPublico | null
-```
+- **Contraseñas**: hash bcrypt; `UsuarioPublico` nunca expone `password_hash`. La
+  comparación usa un hash falso cuando el usuario no existe (evita filtrar por tiempo).
+- **Sesión**: cookie `HttpOnly`, `SameSite=Lax`, `secure: 'auto'`, `maxAge` de 8 h.
+  `saveUninitialized:false` y `resave:false`. Se **regenera** el id al autenticar
+  (anti-fijación) y se **destruye** al cerrar sesión.
+- **`SESSION_SECRET`**: obligatorio en producción (la app falla al arrancar si falta).
+  En desarrollo se usa un secreto de prueba con aviso por consola. El `.env` no se sube.
+- **CSRF** (`csrf.ts`): en métodos que modifican datos se verifica `Origin`/`Referer`
+  contra el mismo host o una lista de confianza (`FRONTEND_ORIGIN`). Un navegador no
+  puede falsificar esos encabezados. Se combina con `SameSite=Lax`.
+- **Autorización**: `loginRequired` resuelve la identidad **desde el servidor**
+  (`req.session.userId`) y `roleRequired(...roles)` aplica la política. Las rutas de
+  administración exigen `administrador`; agentes y técnicos reciben `403`. El router
+  de usuarios **falla cerrado** (401) si no se inyectan ambos middlewares.
+- **Sin autenticación por encabezados**: no se confía en `x-usuario`, `authorization`,
+  `creado_por`, etc. Hay pruebas que lo verifican.
 
-`UsuarioPublico` contiene `id`, `nombre`, `usuario`, `rol`, `activo` y `grupo_id`. No contiene `password_hash`.
+## Contrato de identidad para otros módulos (Triaje, Tickets, Admin)
 
-### Rutas
-
-| Método y ruta | Implementación |
-|---|---|
-| `GET /api/auth/usuarios/:id` | Usuario por id; 400 si el id no es un entero positivo, 404 si no existe. |
-| `GET /api/auth/usuarios/por-usuario/:usuario` | Usuario por nombre; 400 si el nombre está vacío, 404 si no existe. |
-
-`authRouter` se exporta **sin** middlewares inyectados y, por diseño, responde `401` a todo: es un router fail-closed que no debe montarse tal cual. Para habilitar las rutas hay que usar la fábrica:
-
-```ts
-import { crearAuthRouter } from './modules/auth/auth.routes';
-
-app.use('/api/auth', crearAuthRouter({
-  requiereAutenticacion: loginRequired,          // AUTH-02
-  requiereAutorizacion: roleRequired('administrador'), // AUTH-03
-}));
-```
-
-Reglas de seguridad:
-
-- Las rutas solo se habilitan cuando se inyectan **ambos** middlewares; si falta alguno, responden `401`. Así no pueden quedar públicas por olvido al integrar.
-- No se implementó un login provisional ni autenticación por encabezados del cliente.
-- **No montar `authRouter` en `backend/src/app.ts`** hasta que AUTH-02 y AUTH-03 estén listos. `app.ts` no se modifica en este PR.
-
-## Qué falta para AUTH-02 y AUTH-03
-
-- **AUTH-02:** `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, configuración de `express-session`, verificación de `password_hash` con bcrypt y `loginRequired`.
-- **AUTH-03:** `roleRequired(...roles)` y la política de roles definitiva para estas consultas. El módulo de auth solo recibe el middleware ya configurado; no decide roles por su cuenta.
-
-Hasta entonces, la aplicación no debe montar el router de usuarios.
-
-## Tipos compartidos y TS6059
-
-El backend compila con `rootDir: "src"` y los contratos viven en `shared/types`, fuera de esa carpeta. Importar `Rol` desde `shared/types/triaje.types.ts` incluye un archivo fuera de `rootDir` y produce **TS6059**. Cambiar `rootDir` a la raíz del repositorio alteraría el layout de `dist` que consume `npm start`.
-
-Decisión temporal de AUTH-01: mantener `RolAuth` en `auth.types.ts`, con exactamente los mismos valores que `Rol` en `shared/types/triaje.types.ts`:
+La **única fuente de identidad** es la sesión del servidor. Cualquier módulo debe
+resolver el usuario con el helper canónico `usuarioDeRequest(req)` (o montar
+`loginRequired`, que lo deja en `res.locals.usuario`):
 
 ```ts
-export type RolAuth = 'agente' | 'tecnico' | 'administrador';
+import { loginRequired, roleRequired, usuarioDeRequest } from '../auth/auth.middleware';
+
+router.post('/sugerir', roleRequired('agente', 'administrador'), (req, res) => {
+  const usuario = res.locals.usuario; // UsuarioSesion { id, nombre, usuario, rol, grupo_id }
+  // ...
+});
 ```
 
-Solución recomendada para el monorepositorio (fuera del alcance de este PR): publicar `shared/types` como paquete interno con declaraciones `.d.ts` emitidas, o configurar project references/`paths` con un `tsconfig` específico para `shared`. Mientras tanto, cualquier cambio en los roles compartidos debe replicarse aquí y en la validación de la base (`CHECK` de `usuarios.rol`).
+- La sesión guarda **solo** `req.session.userId` (ver el `declare module` en
+  `auth.types.ts`). No existe una segunda estructura de sesión.
+- No leer la identidad de encabezados ni del cuerpo (`creado_por` recibido del cliente
+  se ignora; se usa `res.locals.usuario.id`).
+- El rol y el estado se releen de la base en cada petición, así que desactivar o
+  cambiar el rol de un usuario surte efecto de inmediato.
+
+### Coordinación con Triaje (`feature/triaje`, ya en `main`)
+
+`backend/src/modules/triaje/rutas.ts` lee `req.session.usuario` (un objeto dentro de la
+sesión) con su propio `usuarioDeSesion(req)`, mientras que AUTH guarda `req.session.userId`.
+Para unificar la fuente, al integrar Triaje hay que **cambiar solo el acceso a sesión**
+(no la lógica del clasificador, prioridades ni decisiones):
+
+```diff
+- export function usuarioDeSesion(req: Request): UsuarioSesion | undefined {
+-   return (req as ...).session?.usuario;
+- }
++ import { usuarioDeRequest } from '../auth/auth.middleware';
++ export const usuarioDeSesion = usuarioDeRequest; // { id, nombre, usuario, rol, grupo_id }
+```
+
+y montar las rutas inyectando el guard real:
+
+```ts
+app.use('/api', crearRutasTriaje({ requiereRol: roleRequired }));
+```
+
+`auth.integration.test.ts` prueba el contrato con un router tipo Triaje: sin sesión → 401,
+con sesión → resuelve `{ id, rol }` desde `req.session.userId`, ignora encabezados del
+cliente y confirma que **no** se guarda un objeto de usuario en la sesión.
+
+No se modificó la lógica del clasificador, prioridades ni decisiones de Triaje.
 
 ## Pruebas
 
 ```powershell
-npm run test -w backend
-# o todas las verificaciones del repositorio
-npm run check
+npm run test -w backend   # o: npm run check
 ```
 
-`backend/src/modules/auth/auth.test.ts` cubre:
+Todas las pruebas corren contra una **base SQLite en memoria** con el seed aplicado
+(`vitest.config.ts` + `src/test/setup.ts`, `DB_FILE=':memory:'`). **Ninguna ejecución
+modifica `data/smarttriage.db`** ni los usuarios reales; cada archivo de prueba obtiene
+su propia base. `auth.integration.test.ts` verifica rutas montadas, roles, CSRF y que la
+base usada sea `:memory:`.
 
-- búsqueda por nombre e id con datos reales;
-- DTO y respuestas HTTP sin `password_hash`;
-- 404/400 en búsquedas inexistentes o inválidas;
-- rechazo `401` sin middlewares, incluso enviando encabezados de autenticación del cliente;
-- rechazo `401` si falta el middleware de autorización (fail-closed);
-- consultas SQL parametrizadas (marcadores `?` y valores enviados por separado).
+Cobertura:
 
-Las pruebas de repositorio/API usan la base local `data/smarttriage.db` en modo **solo lectura**. Requieren que el seed exista:
+- `auth.test.ts`: repositorio/servicio, DTO sin hash, 400/404, SQL parametrizado, fail-closed.
+- `auth.session.test.ts`: login/logout, cookie `HttpOnly`/`SameSite`, regeneración, inactivos.
+- `auth.roles.test.ts`: matriz de roles (401 sin sesión, 403 rol incorrecto).
+- `usuarios.test.ts`: alta/edición/desactivación, duplicados, grupo de técnicos, guardas de admin.
+- `auth.integration.test.ts`: `app.ts` real, `/api/health`, `/me`, gestión de usuarios y CSRF.
 
-```powershell
-npm run db:init
-npm run db:seed
-```
+## Notas de tipos (TS6059)
 
-No modifican datos ni eliminan la base local.
+El backend compila con `rootDir: "src"` y los contratos viven en `shared/types`, fuera de
+esa carpeta. Importar `Rol` desde `shared/types/triaje.types.ts` produciría **TS6059**.
+Se mantiene el alias `RolAuth` en `auth.types.ts`, con exactamente los mismos valores que
+`Rol`. Cualquier cambio de roles debe replicarse aquí y en el `CHECK` de `usuarios.rol`.
