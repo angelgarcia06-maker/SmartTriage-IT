@@ -19,7 +19,15 @@ const CLAVE = 'Cambiar123!';
 
 async function sesion(usuario: string) {
   const agente = request.agent(app);
-  const r = await agente.post('/api/auth/login').send({ usuario, password: CLAVE });
+
+  const csrf = await agente.get('/api/auth/csrf');
+  expect(csrf.status).toBe(200);
+
+  const r = await agente
+    .post('/api/auth/login')
+    .set('X-CSRF-Token', csrf.body.csrfToken)
+    .send({ usuario, password: CLAVE });
+
   expect(r.status).toBe(200);
   return agente;
 }
@@ -130,21 +138,39 @@ describe('Protección CSRF (verificación de origen)', () => {
   });
 
   it('permite login desde el origen del frontend', async () => {
-    const r = await request(app)
-      .post('/api/auth/login')
-      .set('Origin', 'http://localhost:5173')
-      .send({ usuario: 'admin', password: CLAVE });
-    expect(r.status).toBe(200);
-  });
+  const agente = request.agent(app);
+
+  const csrf = await agente.get('/api/auth/csrf');
+  expect(csrf.status).toBe(200);
+
+  const r = await agente
+    .post('/api/auth/login')
+    .set('Origin', 'http://localhost:5173')
+    .set('X-CSRF-Token', csrf.body.csrfToken)
+    .send({ usuario: 'admin', password: CLAVE });
+
+  expect(r.status).toBe(200);
+});
 
   it('rechaza una escritura administrativa desde un origen ajeno (403)', async () => {
-    const admin = await sesion('admin');
-    const r = await admin
-      .post('/api/usuarios')
-      .set('Origin', 'http://malicioso.example')
-      .send({ nombre: 'CSRF Test', usuario: 'zz_csrf_test', password: CLAVE, rol: 'agente' });
-    expect(r.status).toBe(403);
-  });
+  const admin = await sesion('admin');
+
+  const csrf = await admin.get('/api/auth/csrf');
+  expect(csrf.status).toBe(200);
+
+  const r = await admin
+    .post('/api/usuarios')
+    .set('X-CSRF-Token', csrf.body.csrfToken)
+    .set('Origin', 'http://malicioso.example')
+    .send({
+      nombre: 'CSRF Test',
+      usuario: 'zz_csrf_test',
+      password: CLAVE,
+      rol: 'agente',
+    });
+
+  expect(r.status).toBe(403);
+});
 
   it('rechaza una sugerencia de triaje desde un origen ajeno (403)', async () => {
     const agente = await sesion('agente');
@@ -182,7 +208,16 @@ describe('Contrato de identidad compartido (Triaje / Tickets / Admin)', () => {
 
   it('resuelve el usuario desde req.session.userId, sin copia en la sesión', async () => {
     const agente = request.agent(appContrato);
-    expect((await agente.post('/api/auth/login').send({ usuario: 'agente', password: CLAVE })).status).toBe(200);
+
+const csrf = await agente.get('/api/auth/csrf');
+expect(csrf.status).toBe(200);
+
+const login = await agente
+  .post('/api/auth/login')
+  .set('X-CSRF-Token', csrf.body.csrfToken)
+  .send({ usuario: 'agente', password: CLAVE });
+
+expect(login.status).toBe(200);
     const r = await agente
       .post('/api/triaje/sugerir')
       .send({ descripcion: 'No me conecta el wifi', impacto: 'Alto', urgencia: 'Alta' });

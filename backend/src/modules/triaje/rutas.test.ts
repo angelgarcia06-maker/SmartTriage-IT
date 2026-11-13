@@ -23,7 +23,15 @@ function crearApp() {
 
 async function sesion(usuario: string) {
   const agente = request.agent(crearApp());
-  const r = await agente.post('/api/auth/login').send({ usuario, password: CLAVE });
+
+  const csrf = await agente.get('/api/auth/csrf');
+  expect(csrf.status).toBe(200);
+
+  const r = await agente
+    .post('/api/auth/login')
+    .set('X-CSRF-Token', csrf.body.csrfToken)
+    .send({ usuario, password: CLAVE });
+
   expect(r.status).toBe(200);
   return agente;
 }

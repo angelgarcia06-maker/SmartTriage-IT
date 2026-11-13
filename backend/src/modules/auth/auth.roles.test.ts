@@ -25,7 +25,18 @@ appCompleta.use('/api/auth', authRouterCompleto);
 
 async function sesionDe(a: express.Express, usuario: string) {
   const agente = request.agent(a);
-  const r = await agente.post('/api/auth/login').send({ usuario, password: CLAVE });
+
+  // Obtener token CSRF de la sesión inicial.
+  const csrf = await agente.get('/api/auth/csrf');
+
+  expect(csrf.status).toBe(200);
+
+  // Iniciar sesión enviando el token.
+  const r = await agente
+    .post('/api/auth/login')
+    .set('X-CSRF-Token', csrf.body.csrfToken)
+    .send({ usuario, password: CLAVE });
+
   expect(r.status).toBe(200);
   return agente;
 }
@@ -99,8 +110,18 @@ describe('AUTH-03: seguridad del middleware', () => {
   });
 
   it('tras logout vuelve a dar 401', async () => {
-    const a = await sesionDe(app, 'admin');
-    await a.post('/api/auth/logout');
-    expect((await a.get('/api/_test/admin')).status).toBe(401);
-  });
+  const a = await sesionDe(app, 'admin');
+
+  // El login regeneró la sesión: obtener el token de la sesión actual.
+  const csrf = await a.get('/api/auth/csrf');
+
+  expect(csrf.status).toBe(200);
+
+  const salida = await a
+    .post('/api/auth/logout')
+    .set('X-CSRF-Token', csrf.body.csrfToken);
+
+  expect(salida.status).toBe(200);
+  expect((await a.get('/api/_test/admin')).status).toBe(401);
+});
 });
