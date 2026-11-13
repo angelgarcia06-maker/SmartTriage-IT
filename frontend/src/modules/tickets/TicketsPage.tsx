@@ -2,7 +2,16 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowUpRight, Plus, RefreshCw, Search, Ticket, X } from 'lucide-react';
 import type { EstadoTicket, Prioridad } from '../../../../shared/types/triaje.types';
 import TicketCreateForm from './TicketCreateForm';
-import { listarTickets, obtenerTicket, type FiltrosTickets, type TicketDetalle, type TicketResumen } from './api';
+import {
+  actualizarEstadoTicket,
+  listarTickets,
+  obtenerHistorial,
+  obtenerTicket,
+  type EventoHistorial,
+  type FiltrosTickets,
+  type TicketDetalle,
+  type TicketResumen,
+} from './api';
 
 type Vista = { tipo: 'lista' } | { tipo: 'nuevo' } | { tipo: 'detalle'; id: number };
 type CamposFiltro = { busqueda: string; estado: string; categoria_id: string; prioridad: string; tecnico_id: string };
@@ -10,6 +19,12 @@ type CamposFiltro = { busqueda: string; estado: string; categoria_id: string; pr
 const ESTADOS: EstadoTicket[] = ['Nuevo', 'Asignado', 'En proceso', 'Resuelto', 'Cerrado'];
 const PRIORIDADES: Prioridad[] = ['Crítica', 'Alta', 'Media', 'Baja'];
 const CAMPOS_FILTRO_VACIOS: CamposFiltro = { busqueda: '', estado: '', categoria_id: '', prioridad: '', tecnico_id: '' };
+const SIGUIENTE_ESTADO: Partial<Record<EstadoTicket, { estado: EstadoTicket; etiqueta: string }>> = {
+  Nuevo: { estado: 'Asignado', etiqueta: 'Asignar' },
+  Asignado: { estado: 'En proceso', etiqueta: 'Iniciar atención' },
+  'En proceso': { estado: 'Resuelto', etiqueta: 'Marcar resuelto' },
+  Resuelto: { estado: 'Cerrado', etiqueta: 'Cerrar ticket' },
+};
 
 function fechaLegible(fecha: string): string {
   const valor = new Date(fecha);
@@ -255,21 +270,51 @@ interface DetalleProps {
 
 function DetalleTicket({ id, onVolver }: DetalleProps) {
   const [ticket, setTicket] = useState<TicketDetalle | null>(null);
+  const [historial, setHistorial] = useState<EventoHistorial[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
+  const [errorEstado, setErrorEstado] = useState('');
+  const [motivoReapertura, setMotivoReapertura] = useState('');
+  const [actualizandoEstado, setActualizandoEstado] = useState(false);
+  const [revision, setRevision] = useState(0);
 
   useEffect(() => {
     let vigente = true;
     setCargando(true);
     setError('');
-    obtenerTicket(id)
-      .then((resultado) => { if (vigente) setTicket(resultado); })
+    Promise.all([obtenerTicket(id), obtenerHistorial(id)])
+      .then(([resultado, eventos]) => {
+        if (!vigente) return;
+        setTicket(resultado);
+        setHistorial(eventos);
+      })
       .catch((err: unknown) => {
         if (vigente) setError(err instanceof Error ? err.message : 'No se pudo cargar el ticket.');
       })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
-  }, [id]);
+    }, [id, revision]);
+
+    async function cambiarEstado(estado: EstadoTicket, motivo?: string) {
+      setActualizandoEstado(true);
+      setErrorEstado('');
+      try {
+        await actualizarEstadoTicket(id, estado, motivo);
+        setMotivoReapertura('');
+        setRevision((actual) => actual + 1);
+      } catch (err) {
+        setErrorEstado(err instanceof Error ? err.message : 'No se pudo actualizar el estado.');
+      } finally {
+        setActualizandoEstado(false);
+      }
+    }
+
+    function enviarReapertura(evento: FormEvent<HTMLFormElement>) {
+      evento.preventDefault();
+      void cambiarEstado('En proceso', motivoReapertura.trim());
+    }
+
+    const siguiente = ticket ? SIGUIENTE_ESTADO[ticket.estado] : undefined;
 
   return (
     <section className="page-section" aria-labelledby="detalle-ticket-titulo">
@@ -297,6 +342,48 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
               <dt className="col-sm-3">Descripción</dt><dd className="col-sm-9" style={{ whiteSpace: 'pre-wrap' }}>{ticket.descripcion}</dd>
             </dl>
           </div>
+          <section className="feature-card mt-3" aria-labelledby="estado-ticket-titulo">
+            <h3 id="estado-ticket-titulo" className="h6">Estado del ticket</h3>
+            {siguiente && (
+              <button type="button" className="btn btn-primary" disabled={actualizandoEstado}
+                onClick={() => void cambiarEstado(siguiente.estado)}>
+                {actualizandoEstado ? 'Actualizando…' : siguiente.etiqueta}
+              </button>
+            )}
+            {ticket.estado === 'Resuelto' && (
+              <form className="mt-3" onSubmit={enviarReapertura}>
+                <label htmlFor="motivo-reapertura" className="form-label">Motivo de reapertura</label>
+                <div className="d-flex flex-column flex-sm-row gap-2">
+                  <input id="motivo-reapertura" className="form-control" maxLength={500} required
+                    value={motivoReapertura} onChange={(evento) => setMotivoReapertura(evento.target.value)} />
+                  <button type="submit" className="btn btn-outline-primary text-nowrap" disabled={actualizandoEstado || !motivoReapertura.trim()}>
+                    Reabrir ticket
+                  </button>
+                </div>
+              </form>
+            )}
+            {errorEstado && <div className="alert alert-danger mt-3 mb-0" role="alert">{errorEstado}</div>}
+          </section>
+          <section className="feature-card mt-3" aria-labelledby="historial-ticket-titulo">
+            <h3 id="historial-ticket-titulo" className="h6">Historial</h3>
+            {historial.length === 0 ? (
+              <p className="mb-0">Aún no hay cambios de estado registrados.</p>
+            ) : (
+              <ol className="list-group list-group-flush">
+                {historial.map((evento) => (
+                  <li className="list-group-item px-0" key={evento.id}>
+                    <div className="d-flex flex-wrap justify-content-between gap-1">
+                      <strong>{evento.accion}</strong>
+                      <time className="small muted" dateTime={evento.fecha}>{fechaLegible(evento.fecha)}</time>
+                    </div>
+                    <p className="small muted mb-0">
+                      {evento.usuario} · {evento.valor_anterior ?? '—'} → {evento.valor_nuevo ?? '—'}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </section>
         </>
       )}
     </section>

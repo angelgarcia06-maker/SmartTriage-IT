@@ -15,3 +15,8 @@
 
 - El listado permite combinar búsqueda por ID, título o solicitante con estado, categoría sugerida, prioridad y técnico.
 - Los filtros se envían a `GET /api/tickets` y el estado vacío distingue entre lista vacía y búsqueda sin coincidencias.
+
+## TICK-04: estados e historial
+
+- El detalle permite avanzar por las transiciones válidas y reabrir un ticket resuelto con motivo.
+- La cronología muestra acción, autor, fecha y estados anterior/nuevo sin editar eventos existentes.

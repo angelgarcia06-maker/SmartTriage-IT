@@ -23,3 +23,10 @@ El integrador debe montar este router en `/api/tickets` junto con los middleware
 - `busqueda` compara el ID exacto y términos parciales en título y solicitante. El resto de criterios filtran por igualdad.
 - Zod valida enums e IDs antes de consultar; todos los valores se enlazan como parámetros SQL.
 - Para técnicos, el `tecnico_id` de sesión se combina siempre con el filtro solicitado, por lo que un query param no amplía su visibilidad.
+
+## TICK-04: estados e historial
+
+- `PATCH /api/tickets/:id/estado` permite `Nuevo → Asignado → En proceso → Resuelto → Cerrado` y `Resuelto → En proceso` con motivo obligatorio.
+- Agentes y administradores pueden cambiar estados; técnicos solo pueden hacerlo en tickets asignados a su usuario.
+- El cambio y el evento de historial se guardan en la misma transacción; las transiciones inválidas responden 409.
+- `GET /api/tickets/:id/historial` devuelve los eventos de forma cronológica y respeta los mismos permisos de visibilidad.

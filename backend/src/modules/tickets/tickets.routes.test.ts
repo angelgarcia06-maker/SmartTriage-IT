@@ -3,6 +3,7 @@ import express, { type RequestHandler } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { crearRutasTickets } from './tickets.routes';
+import { cambiarEstadoTicket } from './tickets.service';
 
 let conexion: Database.Database;
 const usuarioSesion = { id: 7, rol: 'agente' };
@@ -77,6 +78,15 @@ beforeEach(() => {
       prioridad_sugerida TEXT,
       grupo_sugerido_id INTEGER,
       palabra_activadora TEXT
+    );
+    CREATE TABLE historial (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER NOT NULL REFERENCES tickets(id),
+      usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+      accion TEXT NOT NULL,
+      valor_anterior TEXT,
+      valor_nuevo TEXT,
+      fecha TEXT NOT NULL DEFAULT '2026-11-13T00:00:00.000Z'
     );
   `);
 });
@@ -257,5 +267,72 @@ describe('GET /api/tickets/:id', () => {
 
     expect((await request(app).get('/api/tickets/no-valido')).status).toBe(400);
     expect((await request(app).get('/api/tickets/999')).status).toBe(404);
+  });
+});
+
+describe('PATCH /api/tickets/:id/estado y GET /api/tickets/:id/historial', () => {
+  it('recorre el flujo, reabre con motivo y conserva cronología', async () => {
+    const ticketId = insertarTicket('Ciclo de vida', 9);
+    const agente = crearApp();
+    const tecnico = crearApp(true, { id: 9, rol: 'tecnico' });
+
+    const asignado = await agente.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
+    const enProceso = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
+    const resuelto = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const reaperturaInvalida = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
+    const reabierto = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({
+      estado: 'En proceso',
+      motivo: 'La falla volvió después de la solución.',
+    });
+    const resueltoDeNuevo = await tecnico.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const cerrado = await agente.patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Cerrado' });
+    const historial = await request(agente).get(`/api/tickets/${ticketId}/historial`);
+
+    expect([asignado.status, enProceso.status, resuelto.status]).toEqual([200, 200, 200]);
+    expect(reaperturaInvalida.status).toBe(400);
+    expect(reabierto.status).toBe(200);
+    expect(resueltoDeNuevo.status).toBe(200);
+    expect(cerrado.body.estado).toBe('Cerrado');
+    expect(historial.status).toBe(200);
+    expect(historial.body.historial.map((evento: { valor_nuevo: string }) => evento.valor_nuevo)).toEqual([
+      'Asignado', 'En proceso', 'Resuelto', 'En proceso', 'Resuelto', 'Cerrado',
+    ]);
+    expect(historial.body.historial[3].accion).toContain('La falla volvió después de la solución.');
+  });
+
+  it('rechaza transiciones inválidas y respeta sesión, rol y asignación', async () => {
+    const ticketId = insertarTicket('Permisos estado', 9);
+    const agente = crearApp();
+    const tecnicoAjeno = crearApp(true, { id: 11, rol: 'tecnico' });
+    const rolInvalido = crearApp(true, { id: 7, rol: 'observador' });
+    const sinSesion = crearApp(false);
+
+    const transicionInvalida = await request(agente).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const asignacionAjena = await request(tecnicoAjeno).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
+    const rolDenegado = await request(rolInvalido).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
+    const noAutenticado = await request(sinSesion).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
+    const inexistente = await request(agente).patch('/api/tickets/999/estado').send({ estado: 'Asignado' });
+    const historialAjeno = await request(tecnicoAjeno).get(`/api/tickets/${ticketId}/historial`);
+
+    expect(transicionInvalida.status).toBe(409);
+    expect(asignacionAjena.status).toBe(403);
+    expect(rolDenegado.status).toBe(403);
+    expect(noAutenticado.status).toBe(401);
+    expect(inexistente.status).toBe(404);
+    expect(historialAjeno.status).toBe(404);
+    expect(conexion.prepare('SELECT estado FROM tickets WHERE id = ?').get(ticketId)).toEqual({ estado: 'Nuevo' });
+    expect(conexion.prepare('SELECT COUNT(*) AS total FROM historial WHERE ticket_id = ?').get(ticketId)).toEqual({ total: 0 });
+  });
+
+  it('revierte el cambio si falla la inserción del historial', () => {
+    const ticketId = insertarTicket('Atomicidad', 9);
+    conexion.exec(`
+      CREATE TRIGGER impedir_historial BEFORE INSERT ON historial
+      BEGIN SELECT RAISE(ABORT, 'fallo de historial'); END;
+    `);
+
+    expect(() => cambiarEstadoTicket(ticketId, 'Asignado', usuarioSesion, undefined, conexion)).toThrow('fallo de historial');
+    expect(conexion.prepare('SELECT estado FROM tickets WHERE id = ?').get(ticketId)).toEqual({ estado: 'Nuevo' });
+    expect(conexion.prepare('SELECT COUNT(*) AS total FROM historial WHERE ticket_id = ?').get(ticketId)).toEqual({ total: 0 });
   });
 });

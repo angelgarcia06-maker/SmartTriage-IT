@@ -3,8 +3,11 @@ import type Database from 'better-sqlite3';
 import { z } from 'zod';
 import { db as conexionPredeterminada } from '../../db/connection';
 import {
+  cambiarEstadoTicket,
   crearTicket,
+  ErrorEstadoTicket,
   listarTickets,
+  obtenerHistorial,
   obtenerTicket,
   type DatosTicket,
   type FiltrosTickets,
@@ -29,6 +32,11 @@ const esquemaFiltros = z.object({
   categoria_id: idFiltro.optional(),
   prioridad: z.enum(PRIORIDADES_TICKET).optional(),
   tecnico_id: idFiltro.optional(),
+}).strict();
+
+const esquemaCambioEstado = z.object({
+  estado: z.enum(ESTADOS_TICKET),
+  motivo: z.string().trim().min(1).max(500).optional(),
 }).strict();
 
 export interface OpcionesRutasTickets {
@@ -114,6 +122,63 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
       return;
     }
     res.json(ticket);
+  });
+
+  router.get('/:id/historial', requiereAutenticacion, (req, res) => {
+    const usuario = usuarioDeSesion(res);
+    if (!usuario) {
+      res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
+      return;
+    }
+    if (!rolPuedeConsultar(usuario.rol)) {
+      res.status(403).json({ message: 'No tienes permiso para consultar tickets.' });
+      return;
+    }
+
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ message: 'Id de ticket inválido.' });
+      return;
+    }
+    const tecnicoId = usuario.rol === 'tecnico' ? usuario.id : undefined;
+    if (!obtenerTicket(id, conexion, tecnicoId)) {
+      res.status(404).json({ message: 'Ticket no encontrado.' });
+      return;
+    }
+    res.json({ historial: obtenerHistorial(id, conexion) });
+  });
+
+  router.patch('/:id/estado', requiereAutenticacion, (req, res) => {
+    const usuario = usuarioDeSesion(res);
+    if (!usuario) {
+      res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
+      return;
+    }
+    if (!['agente', 'administrador', 'tecnico'].includes(usuario.rol)) {
+      res.status(403).json({ message: 'No tienes permiso para cambiar el estado.' });
+      return;
+    }
+
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ message: 'Id de ticket inválido.' });
+      return;
+    }
+    const datos = esquemaCambioEstado.safeParse(req.body);
+    if (!datos.success) {
+      res.status(400).json({ message: 'Cambio de estado inválido.', errores: datos.error.flatten().fieldErrors });
+      return;
+    }
+
+    try {
+      res.json(cambiarEstadoTicket(id, datos.data.estado, usuario, datos.data.motivo, conexion));
+    } catch (error) {
+      if (error instanceof ErrorEstadoTicket) {
+        res.status(error.status).json({ message: error.message });
+        return;
+      }
+      throw error;
+    }
   });
 
   router.post('/', requiereAutenticacion, (req, res) => {

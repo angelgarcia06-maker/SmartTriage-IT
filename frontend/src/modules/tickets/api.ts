@@ -32,6 +32,17 @@ export interface FiltrosTickets {
   tecnico_id?: number;
 }
 
+export interface EventoHistorial {
+  id: number;
+  ticket_id: number;
+  usuario_id: number;
+  usuario: string;
+  accion: string;
+  valor_anterior: string | null;
+  valor_nuevo: string | null;
+  fecha: string;
+}
+
 async function consultar<T>(url: string): Promise<T> {
   const respuesta = await fetch(url, { credentials: 'include' });
   const cuerpo = await respuesta.json().catch(() => ({}));
@@ -72,4 +83,28 @@ export async function listarTickets(filtros: FiltrosTickets = {}): Promise<Ticke
 
 export function obtenerTicket(id: number): Promise<TicketDetalle> {
   return consultar<TicketDetalle>(API.tickets.detail(id));
+}
+
+export async function obtenerHistorial(id: number): Promise<EventoHistorial[]> {
+  const respuesta = await consultar<{ historial: EventoHistorial[] }>(API.tickets.history(id));
+  return respuesta.historial;
+}
+
+export async function actualizarEstadoTicket(
+  id: number,
+  estado: EstadoTicket,
+  motivo?: string,
+): Promise<{ ticket_id: number; estado: EstadoTicket; fecha: string }> {
+  const respuesta = await fetch(API.tickets.state(id), {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(motivo ? { estado, motivo } : { estado }),
+  });
+  const cuerpo = await respuesta.json().catch(() => ({}));
+  if (!respuesta.ok) {
+    const error = cuerpo as { message?: string };
+    throw new Error(error.message ?? `No se pudo cambiar el estado (${respuesta.status}).`);
+  }
+  return cuerpo as { ticket_id: number; estado: EstadoTicket; fecha: string };
 }
