@@ -14,7 +14,7 @@ export default defineConfig({
     env: {
       DB_FILE: ':memory:',
       NODE_ENV: 'test',
-      SESSION_SECRET: 'test-secret-solo-pruebas',
+      SESSION_SECRET: 'test-secret-solo-pruebas-0123456789abcdef',
     },
     setupFiles: ['./src/test/setup.ts'],
     hookTimeout: 30000,

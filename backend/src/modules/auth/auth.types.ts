@@ -41,5 +41,6 @@ export type UsuarioSesion = Omit<UsuarioPublico, 'activo'>;
 declare module 'express-session' {
   interface SessionData {
     userId?: number;
+    csrfToken?: string;
   }
 }

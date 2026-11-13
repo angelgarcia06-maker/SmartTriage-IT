@@ -8,8 +8,13 @@ const CLAVE = 'Cambiar123!';
 
 async function iniciarSesion(usuario: string) {
   const agente = request.agent(app);
+
+  const csrf = await agente.get('/api/auth/csrf');
+  expect(csrf.status).toBe(200);
+
   const respuesta = await agente
     .post('/api/auth/login')
+    .set('X-CSRF-Token', csrf.body.csrfToken)
     .send({ usuario, password: CLAVE });
   expect(respuesta.status).toBe(200);
   return agente;
