@@ -1,5 +1,6 @@
 import { API } from '../../../../shared/contracts/api.contract';
 import type { DatosTicket, DecisionTriaje, SugerenciaTriaje } from '../../../../shared/types/triaje.types';
+import { obtenerTokenCsrf } from '../auth/csrf';
 import type { CatalogosTriaje } from './PanelSugerencia';
 
 export interface ResultadoDecision {
@@ -9,11 +10,21 @@ export interface ResultadoDecision {
   fecha_decision: string;
 }
 
+export interface DetalleDecisionTicket {
+  ticket_id: number;
+  pendiente: boolean;
+  sugerencia: SugerenciaTriaje;
+  decision: DecisionTriaje | null;
+  aceptada_sin_correccion: boolean | null;
+  fecha_decision: string | null;
+}
+
 async function enviar<T>(url: string, cuerpo: unknown): Promise<T> {
+  const tokenCsrf = await obtenerTokenCsrf();
   const r = await fetch(url, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': tokenCsrf },
     body: JSON.stringify(cuerpo),
   });
   const datos = await r.json().catch(() => ({}));
@@ -39,6 +50,11 @@ export function obtenerCatalogos(): Promise<CatalogosTriaje> {
 /** POST /api/triaje/sugerir — lo usa el formulario de TICK-01 antes de guardar. */
 export function pedirSugerencia(ticket: Pick<DatosTicket, 'titulo' | 'descripcion' | 'impacto' | 'urgencia'>): Promise<SugerenciaTriaje> {
   return enviar(API.triaje.suggest, ticket);
+}
+
+/** GET /api/tickets/:id/decision — recupera la sugerencia original y su decisión confirmada. */
+export function obtenerDecisionTicket(ticketId: number): Promise<DetalleDecisionTicket> {
+  return consultar(API.tickets.decisionDetail(ticketId));
 }
 
 /** POST /api/tickets/:id/decision — aceptar o corregir la sugerencia. */

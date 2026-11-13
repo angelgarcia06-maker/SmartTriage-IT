@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS tickets (
  estado TEXT NOT NULL DEFAULT 'Nuevo' CHECK(estado IN ('Nuevo','Asignado','En proceso','Resuelto','Cerrado')),
  fecha_creacion TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
  creado_por INTEGER NOT NULL REFERENCES usuarios(id), tecnico_id INTEGER REFERENCES usuarios(id),
+ tecnico_sugerido_id INTEGER REFERENCES usuarios(id),
  categoria_sugerida_id INTEGER REFERENCES categorias(id), prioridad_sugerida TEXT CHECK(prioridad_sugerida IN ('Crítica','Alta','Media','Baja')),
  grupo_sugerido_id INTEGER REFERENCES grupos(id), palabra_activadora TEXT,
  categoria_final_id INTEGER REFERENCES categorias(id), prioridad_final TEXT CHECK(prioridad_final IN ('Crítica','Alta','Media','Baja')),
@@ -41,6 +42,9 @@ CREATE TABLE IF NOT EXISTS correcciones (
 CREATE INDEX IF NOT EXISTS idx_tickets_estado ON tickets(estado);
 CREATE INDEX IF NOT EXISTS idx_tickets_fecha ON tickets(fecha_creacion);
 CREATE INDEX IF NOT EXISTS idx_tickets_tecnico ON tickets(tecnico_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_tecnico_estado ON tickets(tecnico_id, estado);
 CREATE INDEX IF NOT EXISTS idx_tickets_cat_final ON tickets(categoria_final_id);
 CREATE INDEX IF NOT EXISTS idx_correcciones_ticket ON correcciones(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_correcciones_ticket_campo ON correcciones(ticket_id, campo);
+CREATE INDEX IF NOT EXISTS idx_historial_ticket_fecha ON historial(ticket_id, fecha, id);
 CREATE INDEX IF NOT EXISTS idx_palabras_categoria ON palabras_clave(categoria_id);

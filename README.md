@@ -21,13 +21,11 @@ Los comandos convencionales `db:init` y `db:seed` usan `DB_FILE` o `data/smarttr
 ## Base de demostración aislada
 `npm run db:seed:demo` crea `data/demo/smarttriage-demo.db`, una base separada de `data/smarttriage.db`, con 40 tickets de ejemplo, transiciones e historial, y decisiones registradas. El comando solo crea esa base si no existe; ante una base preexistente que no esté marcada como su propia salida, se detiene sin modificarla. Las ejecuciones posteriores validan y resumen el seed existente sin insertar ni actualizar registros.
 
-Para iniciar la aplicación usando esa base en PowerShell:
+Para iniciar la aplicación usando esa base aislada:
 ```powershell
-npm run db:seed:demo
-$env:DB_FILE = (Join-Path $PWD 'data\demo\smarttriage-demo.db')
-npm run dev
+npm run dev:demo
 ```
-Para volver a la base predeterminada, elimina la variable con `Remove-Item Env:DB_FILE`. En la base de demostración se usan las cuentas `admin`, `agente`, `tecnico1`–`tecnico4` con clave temporal `Cambiar123!`; son solo para demostración local.
+El comando valida o crea el seed de demostración, aplica migraciones compatibles y arranca frontend/API con `data/demo/smarttriage-demo.db`; no usa ni sobrescribe `data/smarttriage.db`. Si `DB_FILE` ya está definida, el comando se detiene: quita esa variable antes de usarlo. En la base de demostración se usan las cuentas `admin`, `agente`, `tecnico1`–`tecnico4` con clave temporal `Cambiar123!`; son solo para demostración local.
 
 ## Estructura
 - `frontend/src/modules/`: auth / tickets / triaje / admin.

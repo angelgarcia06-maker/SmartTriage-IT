@@ -62,5 +62,8 @@ app.use('/api/tickets', csrfProtection, crearRutasTickets({
   sugerir: (datos, conexion) => sugerir(datos, conexion),
 }));
 
-// TRI: sugerencias y decisiones comparten sesión, autorización y protección CSRF de AUTH.
-app.use('/api', csrfProtection, crearRutasTriaje({ requiereRol: roleRequired }));
+// TRI: proteger origen antes de rutas; autorización y token CSRF en cada escritura.
+app.use('/api', csrfProtection, crearRutasTriaje({
+  requiereRol: roleRequired,
+  protegerEscrituras: csrfTokenProtection,
+}));

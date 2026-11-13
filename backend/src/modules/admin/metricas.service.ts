@@ -135,37 +135,35 @@ export function obtenerMetricas(
     'tecnico'
   ];
 
-  const porCampo: PrecisionCampo[] = campos.map(campo => {
-    const fila = db.prepare(`
-      SELECT
-        COUNT(*) AS total,
-        COALESCE(SUM(
-          CASE
-            WHEN NOT EXISTS (
-              SELECT 1
-              FROM correcciones c
-              WHERE c.ticket_id = t.id
-                AND c.campo = ?
-            ) THEN 1
-            ELSE 0
-          END
-        ), 0) AS aceptadas
-      FROM tickets t
-      WHERE ${CONDICION_DECISION_CONFIRMADA}
-    `).get(campo) as {
-      total: number;
-      aceptadas: number;
-    };
-
-    return {
-      campo,
-      ...fila,
-      porcentaje: calcularPorcentaje(
-        fila.aceptadas,
-        fila.total
-      )
-    };
-  });
+  const conteosPorCampo = db.prepare(`
+    SELECT COUNT(*) AS total,
+      COALESCE(SUM(CASE WHEN NOT EXISTS (
+        SELECT 1 FROM correcciones c WHERE c.ticket_id = t.id AND c.campo = 'categoria'
+      ) THEN 1 ELSE 0 END), 0) AS categoria,
+      COALESCE(SUM(CASE WHEN NOT EXISTS (
+        SELECT 1 FROM correcciones c WHERE c.ticket_id = t.id AND c.campo = 'prioridad'
+      ) THEN 1 ELSE 0 END), 0) AS prioridad,
+      COALESCE(SUM(CASE WHEN NOT EXISTS (
+        SELECT 1 FROM correcciones c WHERE c.ticket_id = t.id AND c.campo = 'grupo'
+      ) THEN 1 ELSE 0 END), 0) AS grupo,
+      COALESCE(SUM(CASE WHEN NOT EXISTS (
+        SELECT 1 FROM correcciones c WHERE c.ticket_id = t.id AND c.campo = 'tecnico'
+      ) THEN 1 ELSE 0 END), 0) AS tecnico
+    FROM tickets t
+    WHERE ${CONDICION_DECISION_CONFIRMADA}
+  `).get() as {
+    total: number;
+    categoria: number;
+    prioridad: number;
+    grupo: number;
+    tecnico: number;
+  };
+  const porCampo: PrecisionCampo[] = campos.map((campo) => ({
+    campo,
+    total: conteosPorCampo.total,
+    aceptadas: conteosPorCampo[campo],
+    porcentaje: calcularPorcentaje(conteosPorCampo[campo], conteosPorCampo.total),
+  }));
 
   // Agrupar según la categoría SUGERIDA, no la final
   const filasCategoria = db.prepare(`

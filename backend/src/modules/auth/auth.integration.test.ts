@@ -90,7 +90,8 @@ describe('Integración Triaje con la sesión de AUTH', () => {
     const ticketsAntes = (db.prepare('SELECT COUNT(*) AS total FROM tickets').get() as { total: number }).total;
     for (const [usuario, rol] of [['agente', 'agente'], ['admin', 'administrador']]) {
       const agente = await sesion(usuario);
-      const r = await agente.post('/api/triaje/sugerir').send(solicitud);
+      const token = (await agente.get('/api/auth/csrf')).body.csrfToken as string;
+      const r = await agente.post('/api/triaje/sugerir').set('X-CSRF-Token', token).send(solicitud);
       expect(r.status).toBe(200);
       expect(r.body).toMatchObject({
         categoria: 'Red',
@@ -119,9 +120,10 @@ describe('Integración Triaje con la sesión de AUTH', () => {
 
   it('valida impacto, urgencia y descripción', async () => {
     const agente = await sesion('agente');
-    const impacto = await agente.post('/api/triaje/sugerir').send({ ...solicitud, impacto: 'Extremo' });
-    const urgencia = await agente.post('/api/triaje/sugerir').send({ ...solicitud, urgencia: 'Inmediata' });
-    const descripcion = await agente.post('/api/triaje/sugerir').send({ ...solicitud, descripcion: '  ' });
+    const token = (await agente.get('/api/auth/csrf')).body.csrfToken as string;
+    const impacto = await agente.post('/api/triaje/sugerir').set('X-CSRF-Token', token).send({ ...solicitud, impacto: 'Extremo' });
+    const urgencia = await agente.post('/api/triaje/sugerir').set('X-CSRF-Token', token).send({ ...solicitud, urgencia: 'Inmediata' });
+    const descripcion = await agente.post('/api/triaje/sugerir').set('X-CSRF-Token', token).send({ ...solicitud, descripcion: '  ' });
     expect(impacto.status).toBe(400);
     expect(urgencia.status).toBe(400);
     expect(descripcion.status).toBe(400);
@@ -176,6 +178,68 @@ describe('Integración Tickets con AUTH-05', () => {
       .send({ estado: 'Asignado' });
     expect(sinToken.status).toBe(403);
     expect(conToken.status).toBe(200);
+  });
+
+  it('recupera, confirma y audita la decisión sin permitir duplicados', async () => {
+    const agente = await sesion('agente');
+    const token = (await agente.get('/api/auth/csrf')).body.csrfToken as string;
+    const alta = await agente
+      .post('/api/tickets')
+      .set('X-CSRF-Token', token)
+      .send(nuevoTicket);
+    expect(alta.status).toBe(201);
+    const ticketId = alta.body.id as number;
+    const sugerencia = alta.body.sugerencia;
+    expect(sugerencia.tecnico_id).toBeTruthy();
+
+    const tecnico = await sesion('tecnico2');
+    const detalleTecnico = await tecnico.get(`/api/tickets/${ticketId}/decision`);
+    expect(detalleTecnico.status).toBe(200);
+    expect(detalleTecnico.body).toMatchObject({
+      pendiente: true,
+      sugerencia: { tecnico_id: sugerencia.tecnico_id },
+    });
+    expect((await tecnico.get('/api/triaje/catalogos')).status).toBe(403);
+
+    const decision = {
+      categoria_final_id: sugerencia.categoria_id,
+      prioridad_final: sugerencia.prioridad,
+      grupo_final_id: sugerencia.grupo_id,
+      tecnico_id: null,
+    };
+    const pendiente = await agente.get(`/api/tickets/${ticketId}/decision`);
+    expect(pendiente.body.pendiente).toBe(true);
+
+    const sinToken = await agente.post(`/api/tickets/${ticketId}/decision`).send(decision);
+    expect(sinToken.status).toBe(403);
+    const confirmada = await agente
+      .post(`/api/tickets/${ticketId}/decision`)
+      .set('X-CSRF-Token', token)
+      .send(decision);
+    expect(confirmada.status).toBe(201);
+    expect(confirmada.body.correcciones).toEqual([
+      expect.objectContaining({ campo: 'tecnico', valor_sugerido: String(sugerencia.tecnico_id), valor_final: 'ninguno' }),
+    ]);
+
+    const detalleFinal = await agente.get(`/api/tickets/${ticketId}/decision`);
+    expect(detalleFinal.body).toMatchObject({
+      pendiente: false,
+      sugerencia: { tecnico_id: sugerencia.tecnico_id },
+      decision: { tecnico_id: null },
+    });
+    const historial = await agente.get(`/api/tickets/${ticketId}/historial`);
+    expect(historial.body.historial).toHaveLength(1);
+    expect(historial.body.historial[0]).toMatchObject({
+      accion: 'Sugerencia de triaje corregida',
+      valor_nuevo: JSON.stringify(decision),
+    });
+
+    const segundaDecision = await agente
+      .post(`/api/tickets/${ticketId}/decision`)
+      .set('X-CSRF-Token', token)
+      .send(decision);
+    expect(segundaDecision.status).toBe(409);
+    expect((await agente.get(`/api/tickets/${ticketId}/historial`)).body.historial).toHaveLength(1);
   });
 
   it('impide que técnicos creen tickets aunque tengan sesión y token', async () => {

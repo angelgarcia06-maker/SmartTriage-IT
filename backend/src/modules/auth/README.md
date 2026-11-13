@@ -78,8 +78,8 @@ router.post('/sugerir', roleRequired('agente', 'administrador'), (req, res) => {
 ### Integración con Triaje
 
 Triaje usa `roleRequired('agente', 'administrador')` y el helper canónico
-`usuarioDeRequest(req)` al registrar decisiones. Sus operaciones POST también
-pasan por la protección CSRF compartida. La identidad se resuelve desde
+`usuarioDeRequest(req)` al registrar decisiones. Sus operaciones POST pasan por la
+validación de origen y token CSRF compartidas. La identidad se resuelve desde
 `req.session.userId`; los roles y el estado del usuario se vuelven a consultar
 en la base de datos en cada petición.
 
