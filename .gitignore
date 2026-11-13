@@ -3,6 +3,10 @@ node_modules/
 dist/
 **/dist/
 coverage/
+# Archivos generados por la compilación incremental de TypeScript
+*.tsbuildinfo
+# Salidas JS generadas accidentalmente al compilar los contratos de shared/
+shared/types/*.js
 .env
 .env.*
 !.env.example

@@ -16,9 +16,13 @@ import { PanelSugerencia } from '../triaje/PanelSugerencia';
 />
 ```
 
-Para usarlo desde el detalle de ticket (TICK-02), pásale los catálogos de categorías, grupos y técnicos (Admin/Auth).
+En la vista de demostración se mantiene el panel completo con `ticketId={null}`:
+permite explorar las correcciones y sus resaltados, pero deshabilita aceptar o
+guardar sin un ticket persistido. Desde el detalle de un ticket real (TICK-02),
+pásale su `ticketId` y catálogos obtenidos de `GET /api/triaje/catalogos`.
 
 ## `api.ts`
 
 - `pedirSugerencia(datosTicket)` → `POST /api/triaje/sugerir` (formulario de TICK-01).
+- `obtenerCatalogos()` → `GET /api/triaje/catalogos` (agente/administrador; SQLite).
 - `enviarDecision(ticketId, decision)` → `POST /api/tickets/:id/decision`.
