@@ -1,35 +1,11 @@
-import { Router, type Request, type RequestHandler } from 'express';
+import { Router, type RequestHandler } from 'express';
 import type Database from 'better-sqlite3';
 import { z } from 'zod';
+import { db as conexionPredeterminada } from '../../db/connection';
+import { roleRequired, usuarioDeRequest } from '../auth/auth.middleware';
+import type { RolAuth } from '../auth/auth.types';
 import { ErrorDecision, registrarDecision } from './decision';
 import { sugerir } from './sugerir';
-
-type Rol = 'agente' | 'tecnico' | 'administrador';
-interface UsuarioSesion { id: number; rol: Rol }
-
-/** Lee el usuario de la sesión. AUTH-02 guarda `req.session.usuario`; ajustar aquí si cambia. */
-export function usuarioDeSesion(req: Request): UsuarioSesion | undefined {
-  return (req as unknown as { session?: { usuario?: UsuarioSesion } }).session?.usuario;
-}
-
-/**
- * Guardia de rol provisional mientras llega `roleRequired` de AUTH-03.
- * 401 sin sesión, 403 si el rol no está permitido.
- */
-export function rolRequeridoProvisional(...roles: Rol[]): RequestHandler {
-  return (req, res, next) => {
-    const usuario = usuarioDeSesion(req);
-    if (!usuario) {
-      res.status(401).json({ message: 'Inicia sesión para continuar.' });
-      return;
-    }
-    if (!roles.includes(usuario.rol)) {
-      res.status(403).json({ message: 'Tu rol no tiene permiso para esta acción.' });
-      return;
-    }
-    next();
-  };
-}
 
 const esquemaSugerir = z.object({
   titulo: z.string().trim().max(200).optional(),
@@ -48,8 +24,8 @@ const esquemaDecision = z.object({
 export interface OpcionesRutasTriaje {
   /** Base de datos (los tests usan SQLite en memoria). Por defecto, la del proyecto. */
   conexion?: Database.Database;
-  /** Inyectar `roleRequired` de AUTH-03 cuando esté listo. */
-  requiereRol?: (...roles: Rol[]) => RequestHandler;
+  /** Middleware de roles de AUTH. */
+  requiereRol?: (...roles: RolAuth[]) => RequestHandler;
 }
 
 /**
@@ -60,9 +36,23 @@ export interface OpcionesRutasTriaje {
  *   POST /api/tickets/:id/decision    (agente, administrador)
  */
 export function crearRutasTriaje(opciones: OpcionesRutasTriaje = {}): Router {
-  const requiereRol = opciones.requiereRol ?? rolRequeridoProvisional;
-  const bd = () => opciones.conexion ?? (require('../../db/connection') as typeof import('../../db/connection')).db;
+  const requiereRol = opciones.requiereRol ?? roleRequired;
+  const bd = () => opciones.conexion ?? conexionPredeterminada;
   const router = Router();
+
+  router.get('/triaje/catalogos', requiereRol('agente', 'administrador'), (_req, res) => {
+    const conexion = bd();
+    const categorias = conexion
+      .prepare('SELECT id, nombre FROM categorias WHERE activa = 1 ORDER BY nombre')
+      .all();
+    const grupos = conexion
+      .prepare('SELECT id, nombre FROM grupos WHERE activo = 1 ORDER BY nombre')
+      .all();
+    const tecnicos = conexion
+      .prepare("SELECT id, nombre, grupo_id FROM usuarios WHERE rol = 'tecnico' AND activo = 1 ORDER BY nombre")
+      .all();
+    res.json({ categorias, grupos, tecnicos });
+  });
 
   router.post('/triaje/sugerir', requiereRol('agente', 'administrador'), (req, res) => {
     const datos = esquemaSugerir.safeParse(req.body);
@@ -86,7 +76,7 @@ export function crearRutasTriaje(opciones: OpcionesRutasTriaje = {}): Router {
       return;
     }
     try {
-      const usuario = usuarioDeSesion(req);
+      const usuario = usuarioDeRequest(req);
       if (!usuario) {
         res.status(401).json({ message: 'Inicia sesión para continuar.' });
         return;

@@ -10,7 +10,7 @@ export interface CatalogosTriaje {
 }
 
 export interface PanelSugerenciaProps {
-  ticketId: number;
+  ticketId: number | null;
   sugerencia: SugerenciaTriaje;
   catalogos: CatalogosTriaje;
   /** Se llama cuando la decisión quedó guardada. */
@@ -30,9 +30,10 @@ function nombre(lista: { id: number; nombre: string }[], id: number | null): str
 /**
  * TRI-04: muestra la sugerencia original del triaje frente a la decisión final
  * y permite Aceptar tal cual o Corregir categoría, prioridad, grupo y técnico.
- * Lo integra el detalle de ticket (TICK-02); no se monta en App.tsx desde aquí.
+ * Sin un ticket persistido, la vista de demostración deshabilita el guardado.
  */
 export function PanelSugerencia({ ticketId, sugerencia, catalogos, onDecision, enviar = enviarDecision }: PanelSugerenciaProps) {
+  const puedeGuardar = ticketId !== null && Number.isInteger(ticketId) && ticketId > 0;
   const original: DecisionTriaje = {
     categoria_final_id: sugerencia.categoria_id,
     prioridad_final: sugerencia.prioridad,
@@ -51,6 +52,7 @@ export function PanelSugerencia({ ticketId, sugerencia, catalogos, onDecision, e
   );
 
   async function confirmar(decision: DecisionTriaje) {
+    if (!puedeGuardar || ticketId === null) return;
     setEnviando(true);
     setError('');
     try {
@@ -72,12 +74,18 @@ export function PanelSugerencia({ ticketId, sugerencia, catalogos, onDecision, e
   ];
 
   return (
-    <section className="feature-card" aria-labelledby={`triaje-${ticketId}`}>
+    <section className="feature-card" aria-labelledby={`triaje-${ticketId ?? 'demostracion'}`}>
       <div className="d-flex align-items-center gap-2 mb-3">
         <BrainCircuit color="#2563eb" size={22} />
-        <h2 id={`triaje-${ticketId}`} className="h6 mb-0">Sugerencia del triaje</h2>
+        <h2 id={`triaje-${ticketId ?? 'demostracion'}`} className="h6 mb-0">Sugerencia del triaje</h2>
         <span className={`badge text-bg-${COLOR_PRIORIDAD[sugerencia.prioridad]} ms-auto`}>{sugerencia.prioridad}</span>
       </div>
+
+      {!puedeGuardar && (
+        <div className="alert alert-info small" role="status">
+          Modo demostración: no hay un ticket persistido; guardar una decisión está deshabilitado.
+        </div>
+      )}
 
       <p className="small muted mb-3">
         {sugerencia.es_otros
@@ -152,7 +160,7 @@ export function PanelSugerencia({ ticketId, sugerencia, catalogos, onDecision, e
           <div className="d-flex gap-2">
             {modo === 'ver' ? (
               <>
-                <button type="button" className="btn btn-primary btn-sm" disabled={enviando} onClick={() => confirmar(original)}>
+                <button type="button" className="btn btn-primary btn-sm" disabled={enviando || !puedeGuardar} onClick={() => confirmar(original)}>
                   <Check size={16} className="me-1" />Aceptar
                 </button>
                 <button type="button" className="btn btn-outline-secondary btn-sm" disabled={enviando} onClick={() => setModo('corregir')}>
@@ -161,7 +169,7 @@ export function PanelSugerencia({ ticketId, sugerencia, catalogos, onDecision, e
               </>
             ) : (
               <>
-                <button type="button" className="btn btn-primary btn-sm" disabled={enviando} onClick={() => confirmar(final)}>
+                <button type="button" className="btn btn-primary btn-sm" disabled={enviando || !puedeGuardar} onClick={() => confirmar(final)}>
                   Guardar corrección
                 </button>
                 <button type="button" className="btn btn-link btn-sm" disabled={enviando}
