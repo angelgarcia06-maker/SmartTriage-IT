@@ -150,9 +150,8 @@ export function DiccionarioPanel() {
   }
 
   return (
-    <section className="container py-4">
-      <h2>Diccionario de palabras clave</h2>
-      <p className="text-muted">
+    <section className="page-section">
+      <p className="page-description">
         Administra las palabras utilizadas para clasificar
         incidencias de soporte técnico.
       </p>
@@ -170,7 +169,7 @@ export function DiccionarioPanel() {
       )}
 
       {cargando ? (
-        <p>Cargando diccionario...</p>
+        <p role="status">Cargando diccionario…</p>
       ) : (
         <>
           <div className="card mb-4">

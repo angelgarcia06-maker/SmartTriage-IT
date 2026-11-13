@@ -1,81 +1,120 @@
 import { useEffect, useState } from 'react';
-import { BrainCircuit, ChartColumn, ClipboardCheck, Database, ShieldCheck, Ticket } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  BookOpen,
+  BrainCircuit,
+  ChartColumn,
+  Database,
+  Settings2,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '../modules/auth/useAuth';
 
 type Health = { status: string; application: string; version: string; database: string };
-
-const features = [
-  { name: 'Autenticación y usuarios', owner: 'Integrante 1', icon: ShieldCheck, status: 'Integrado — AUTH' },
-  { name: 'Tickets e historial', owner: 'Integrante 2', icon: Ticket, status: 'Pendiente — TICK' },
-  { name: 'Triaje Nivel 1', owner: 'Integrante 3', icon: BrainCircuit, status: 'Integrado — TRI' },
-  { name: 'Administración y métricas', owner: 'Integrante 4', icon: ChartColumn, status: 'Integrado — ADM' },
-  { name: 'Pruebas e integración', owner: 'Integrante 5', icon: ClipboardCheck, status: 'En preparación — QA' },
-];
-
-const ETIQUETA_ROL: Record<string, string> = {
-  administrador: 'Administrador',
-  agente: 'Agente',
-  tecnico: 'Técnico',
+type Acceso = {
+  nombre: string;
+  descripcion: string;
+  destino: string;
+  icono: typeof BrainCircuit;
 };
 
-/** Pantalla de bienvenida autenticada (conserva el panel de arranque original). */
+const ETIQUETA_ROL: Record<string, string> = {
+  administrador: 'administrador',
+  agente: 'agente de soporte',
+  tecnico: 'técnico de soporte',
+};
+
+const ACCESOS_ADMIN: Acceso[] = [
+  { nombre: 'Dashboard', descripcion: 'Consulta las métricas y decisiones confirmadas.', destino: '/admin/dashboard', icono: ChartColumn },
+  { nombre: 'Usuarios', descripcion: 'Administra cuentas, roles y grupos de soporte.', destino: '/usuarios', icono: Users },
+  { nombre: 'Catálogos', descripcion: 'Gestiona categorías y grupos de soporte.', destino: '/admin/catalogos', icono: Settings2 },
+  { nombre: 'Diccionario', descripcion: 'Mantén las palabras clave de clasificación.', destino: '/admin/diccionario', icono: BookOpen },
+];
+
+/** Inicio personalizado por rol, sin estadísticas ni actividad simuladas. */
 export default function InicioPage() {
   const { usuario } = useAuth();
   const [health, setHealth] = useState<Health | null>(null);
   const [error, setError] = useState('');
+  const rol = usuario?.rol;
 
   useEffect(() => {
+    let vigente = true;
     fetch('/api/health')
-      .then(async (r) => {
-        if (!r.ok) throw new Error('API no disponible');
-        return r.json();
+      .then(async (respuesta) => {
+        if (!respuesta.ok) throw new Error('El servicio no está disponible en este momento.');
+        return respuesta.json() as Promise<Health>;
       })
-      .then(setHealth)
-      .catch(() => setError('No se puede conectar con Express en el puerto 3000.'));
+      .then((estado) => {
+        if (vigente) setHealth(estado);
+      })
+      .catch((err: unknown) => {
+        if (vigente) {
+          setError(err instanceof Error ? err.message : 'No se pudo consultar el estado del servicio.');
+        }
+      });
+    return () => { vigente = false; };
   }, []);
 
+  const accesos = rol === 'administrador'
+    ? ACCESOS_ADMIN
+    : rol === 'agente'
+      ? [{
+          nombre: 'Triaje inteligente',
+          descripcion: 'Analiza una incidencia y consulta su categoría y asignación sugeridas.',
+          destino: '/triaje',
+          icono: BrainCircuit,
+        }]
+      : [];
+
   return (
-    <>
-      <h1 className="brand h2">Bienvenido, {usuario?.nombre}</h1>
-      <p className="muted mb-4">
-        Sesión iniciada como <b>@{usuario?.usuario}</b> · rol{' '}
-        <b>{usuario ? (ETIQUETA_ROL[usuario.rol] ?? usuario.rol) : ''}        </b>. Panel de arranque de SmartTriage IT.
-      </p>
+    <div className="page-section">
+      <div className="home-welcome">
+        <h2>Bienvenido, {usuario?.nombre}</h2>
+        <p>
+          Tu espacio de trabajo como {rol ? (ETIQUETA_ROL[rol] ?? rol) : 'usuario'} en SmartTriage IT.
+        </p>
+      </div>
 
-      <div className="feature-card mb-4">
-        <div className="d-flex gap-3 align-items-center">
-          <Database color="#2563eb" />
-          <div>
-            <h2 className="h6 mb-1">Estado de la API y base de datos</h2>
-            {health ? (
-              <p className="mb-0">
-                <span className="status-dot" />
-                API conectada · {health.database} · {health.version}
-              </p>
-            ) : (
-              <p className="text-danger mb-0">{error || 'Comprobando conexión...'}</p>
-            )}
+      {accesos.length > 0 ? (
+        <section aria-label="Accesos disponibles">
+          <div className="row g-3">
+            {accesos.map(({ nombre, descripcion, destino, icono: Icono }) => (
+              <div className="col-md-6 col-xl-4" key={destino}>
+                <Link to={destino} className="quick-link-card">
+                  <span className="quick-link-icon" aria-hidden="true"><Icono size={20} /></span>
+                  <span className="quick-link-title">{nombre}</span>
+                  <span className="quick-link-description">{descripcion}</span>
+                </Link>
+              </div>
+            ))}
           </div>
+        </section>
+      ) : rol === 'tecnico' ? (
+        <section className="empty-state" aria-labelledby="espacio-tecnico">
+          <h2 id="espacio-tecnico">Espacio de trabajo</h2>
+          <p>Las herramientas para las tareas de soporte estarán disponibles aquí.</p>
+        </section>
+      ) : null}
+
+      <section className="health-card mt-4" aria-labelledby="estado-servicio">
+        <span className={`health-icon${health?.status === 'ok' ? ' is-online' : error ? ' is-offline' : ''}`} aria-hidden="true">
+          <Database size={20} />
+        </span>
+        <div>
+          <h2 id="estado-servicio" className="health-title">Estado del servicio</h2>
+          {health ? (
+            <p className="health-detail">
+              <span className="status-dot" />
+              API {health.application} conectada · Base de datos {health.database} · Versión {health.version}
+            </p>
+          ) : error ? (
+            <p className="health-detail" role="status">{error}</p>
+          ) : (
+            <p className="health-detail" role="status">Comprobando disponibilidad…</p>
+          )}
         </div>
-      </div>
-
-      <div className="row g-3">
-        {features.map((f) => (
-          <div className="col-md-6 col-xl-4" key={f.name}>
-            <div className="feature-card h-100">
-              <f.icon color="#2563eb" size={26} />
-              <h3 className="h6 mt-3">{f.name}</h3>
-              <p className="small muted mb-2">{f.owner}</p>
-              <span className="badge text-bg-light border">{f.status}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="alert alert-info mt-4 small">
-        AUTH, Triaje y Administración están integrados. Los paneles administrativos están disponibles
-        únicamente para administradores.
-      </div>
-    </>
+      </section>
+    </div>
   );
 }

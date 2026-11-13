@@ -1,6 +1,17 @@
-import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BookOpen, BrainCircuit, ChartColumn, Home, LogOut, Settings2, ShieldCheck, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import {
+  BookOpen,
+  BrainCircuit,
+  ChartColumn,
+  House,
+  LogOut,
+  Menu,
+  Settings2,
+  ShieldCheck,
+  Users,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../modules/auth/useAuth';
 
 const ETIQUETA_ROL: Record<string, string> = {
@@ -9,14 +20,45 @@ const ETIQUETA_ROL: Record<string, string> = {
   tecnico: 'Técnico',
 };
 
-const claseNav = ({ isActive }: { isActive: boolean }) =>
-  `nav-link d-flex align-items-center gap-2 ${isActive ? 'text-white fw-semibold' : 'text-white-50'}`;
+const TITULOS: Record<string, string> = {
+  '/': 'Inicio',
+  '/triaje': 'Triaje inteligente',
+  '/usuarios': 'Gestión de usuarios',
+  '/admin/dashboard': 'Dashboard',
+  '/admin/catalogos': 'Catálogos',
+  '/admin/diccionario': 'Diccionario',
+};
 
-/** Marco autenticado: barra lateral, identidad de la sesión y cierre de sesión. */
+function iniciales(nombre: string | undefined): string {
+  if (!nombre) return '?';
+  return nombre
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((parte) => parte[0]?.toLocaleUpperCase() ?? '')
+    .join('');
+}
+
+/** Marco autenticado: navegación responsive, identidad de sesión y cierre de sesión. */
 export default function Layout() {
   const { usuario, logout } = useAuth();
   const navegar = useNavigate();
+  const ubicacion = useLocation();
   const [saliendo, setSaliendo] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
+  useEffect(() => {
+    setMenuAbierto(false);
+  }, [ubicacion.pathname]);
+
+  useEffect(() => {
+    if (!menuAbierto) return;
+    function cerrarConEscape(evento: KeyboardEvent) {
+      if (evento.key === 'Escape') setMenuAbierto(false);
+    }
+    window.addEventListener('keydown', cerrarConEscape);
+    return () => window.removeEventListener('keydown', cerrarConEscape);
+  }, [menuAbierto]);
 
   async function cerrarSesion() {
     setSaliendo(true);
@@ -25,67 +67,124 @@ export default function Layout() {
       navegar('/login', { replace: true });
     } finally {
       setSaliendo(false);
+      setMenuAbierto(false);
     }
   }
 
+  function enlaceActivo(isActive: boolean) {
+    return `sidebar-link${isActive ? ' is-active' : ''}`;
+  }
+
+  const etiquetaRol = usuario ? (ETIQUETA_ROL[usuario.rol] ?? usuario.rol) : '';
+
   return (
-    <div className="container-fluid">
-      <div className="row">
-        <aside className="col-lg-3 col-xl-2 sidebar p-4 d-flex flex-column">
-          <div className="d-flex align-items-center gap-2 mb-4">
-            <ShieldCheck size={29} />
-            <span className="brand fs-4">SmartTriage IT</span>
-          </div>
-          <p className="text-white-50 small">Mesa de ayuda · Gestión del Servicio TI</p>
-          <hr className="border-secondary" />
+    <div className="app-shell">
+      {menuAbierto && (
+        <button
+          type="button"
+          className="mobile-sidebar-backdrop"
+          aria-label="Cerrar menú de navegación"
+          onClick={() => setMenuAbierto(false)}
+        />
+      )}
 
-          <nav className="nav flex-column gap-1">
-            <NavLink to="/" end className={claseNav}>
-              <Home size={18} /> Inicio
+      <aside className={`app-sidebar${menuAbierto ? ' is-open' : ''}`} aria-label="Navegación principal">
+        <div className="sidebar-brand">
+          <span className="brand-mark" aria-hidden="true"><ShieldCheck size={23} /></span>
+          <span>
+            <span className="sidebar-brand-name">SmartTriage IT</span>
+            <span className="sidebar-brand-caption">Gestión de servicios TI</span>
+          </span>
+          <button
+            type="button"
+            className="sidebar-close"
+            aria-label="Cerrar menú"
+            onClick={() => setMenuAbierto(false)}
+          >
+            <X size={19} />
+          </button>
+        </div>
+
+        <div className="sidebar-group-label">Espacio de trabajo</div>
+        <nav className="sidebar-nav" aria-label="Espacio de trabajo">
+          <NavLink to="/" end className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
+            <House size={18} aria-hidden="true" /> Inicio
+          </NavLink>
+          {(usuario?.rol === 'agente' || usuario?.rol === 'administrador') && (
+            <NavLink to="/triaje" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
+              <BrainCircuit size={18} aria-hidden="true" /> Triaje
             </NavLink>
-            {(usuario?.rol === 'agente' || usuario?.rol === 'administrador') && (
-              <NavLink to="/triaje" className={claseNav}>
-                <BrainCircuit size={18} /> Triaje
-              </NavLink>
-            )}
-            {usuario?.rol === 'administrador' && (
-              <>
-                <NavLink to="/usuarios" className={claseNav}>
-                  <Users size={18} /> Gestión de usuarios
-                </NavLink>
-                <NavLink to="/admin/dashboard" className={claseNav}>
-                  <ChartColumn size={18} /> Dashboard
-                </NavLink>
-                <NavLink to="/admin/catalogos" className={claseNav}>
-                  <Settings2 size={18} /> Catálogos
-                </NavLink>
-                <NavLink to="/admin/diccionario" className={claseNav}>
-                  <BookOpen size={18} /> Diccionario
-                </NavLink>
-              </>
-            )}
-          </nav>
+          )}
+        </nav>
 
-          <div className="mt-auto pt-3">
-            <div className="small text-white-50">Sesión iniciada</div>
-            <div className="text-white">{usuario?.nombre}</div>
-            <div className="small text-white-50 mb-2">
-              @{usuario?.usuario} · {usuario ? (ETIQUETA_ROL[usuario.rol] ?? usuario.rol) : ''}
-            </div>
+        {usuario?.rol === 'administrador' && (
+          <>
+            <div className="sidebar-group-label">Administración</div>
+            <nav className="sidebar-nav" aria-label="Administración">
+              <NavLink to="/admin/dashboard" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
+                <ChartColumn size={18} aria-hidden="true" /> Dashboard
+              </NavLink>
+              <NavLink to="/usuarios" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
+                <Users size={18} aria-hidden="true" /> Usuarios
+              </NavLink>
+              <NavLink to="/admin/catalogos" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
+                <Settings2 size={18} aria-hidden="true" /> Catálogos
+              </NavLink>
+              <NavLink to="/admin/diccionario" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
+                <BookOpen size={18} aria-hidden="true" /> Diccionario
+              </NavLink>
+            </nav>
+          </>
+        )}
+
+        <div className="sidebar-bottom">
+          <div className="sidebar-profile">
+            <span className="profile-avatar" aria-hidden="true">{iniciales(usuario?.nombre)}</span>
+            <span className="profile-copy">
+              <span className="profile-name">{usuario?.nombre}</span>
+              <span className="profile-role">{etiquetaRol}</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            className="sidebar-logout"
+            onClick={() => void cerrarSesion()}
+            disabled={saliendo}
+          >
+            <LogOut size={17} aria-hidden="true" />
+            {saliendo ? 'Cerrando sesión…' : 'Cerrar sesión'}
+          </button>
+        </div>
+      </aside>
+
+      <div className="app-main">
+        <header className="app-topbar">
+          <div className="topbar-start">
             <button
               type="button"
-              className="btn btn-sm btn-outline-light w-100"
-              onClick={() => void cerrarSesion()}
-              disabled={saliendo}
+              className="mobile-menu-button"
+              aria-label={menuAbierto ? 'Cerrar menú' : 'Abrir menú'}
+              aria-expanded={menuAbierto}
+              onClick={() => setMenuAbierto((abierto) => !abierto)}
             >
-              <LogOut size={16} className="me-1" />
-              {saliendo ? 'Cerrando...' : 'Cerrar sesión'}
+              {menuAbierto ? <X size={19} /> : <Menu size={19} />}
             </button>
-            <p className="small text-white-50 mt-3 mb-0">Prototipo académico · v0.1.0</p>
+            <div className="screen-heading" aria-live="polite">
+              <h1>{TITULOS[ubicacion.pathname] ?? 'SmartTriage IT'}</h1>
+              <p>Plataforma de gestión de servicios TI</p>
+            </div>
           </div>
-        </aside>
-
-        <main className="col-lg-9 col-xl-10 p-4 p-lg-5">
+          <div className="topbar-end">
+            <div className="topbar-user">
+              <div className="topbar-user-copy">
+                <div className="topbar-user-name">{usuario?.nombre}</div>
+                <div className="topbar-user-role">{etiquetaRol}</div>
+              </div>
+              <span className="profile-avatar" aria-hidden="true">{iniciales(usuario?.nombre)}</span>
+            </div>
+          </div>
+        </header>
+        <main className="app-content">
           <Outlet />
         </main>
       </div>

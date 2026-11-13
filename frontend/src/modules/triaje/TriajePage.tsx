@@ -48,13 +48,15 @@ export default function TriajePage() {
   }
 
   return (
-    <>
-      <h1 className="brand h2">Demostración de Triaje</h1>
-      <p className="muted mb-4">
+    <div className="page-section">
+      <p className="page-description">
         Solicita una recomendación y explora la vista previa original del panel. Esta demostración no crea ni guarda tickets.
       </p>
 
       <form className="feature-card mb-4" onSubmit={solicitar}>
+        <div className="alert alert-info py-2" role="note">
+          Modo demostración: los datos se analizan para mostrar una sugerencia, pero no se crea ni persiste un ticket.
+        </div>
         <div className="mb-3">
           <label htmlFor="triaje-titulo" className="form-label">Título</label>
           <input
@@ -103,7 +105,7 @@ export default function TriajePage() {
 
       {sugerencia && catalogos && (
         <>
-          <h2 className="h5 mb-3">Vista previa del ticket · modo demostración</h2>
+          <h2 className="h5 mb-3">Vista previa de la sugerencia</h2>
           <PanelSugerencia
             key={JSON.stringify(sugerencia)}
             ticketId={null}
@@ -112,6 +114,6 @@ export default function TriajePage() {
           />
         </>
       )}
-    </>
+    </div>
   );
 }
