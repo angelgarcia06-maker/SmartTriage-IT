@@ -20,6 +20,57 @@ export interface SugerenciaTicket {
   palabra_activadora: string | null;
 }
 
+export interface TicketResumen {
+  id: number;
+  titulo: string;
+  estado: string;
+  categoria_sugerida: string | null;
+  prioridad_sugerida: string | null;
+  tecnico: string | null;
+  fecha_creacion: string;
+}
+
+export interface TicketDetalle extends TicketResumen {
+  solicitante: string;
+  descripcion: string;
+  impacto: ImpactoTicket;
+  urgencia: UrgenciaTicket;
+}
+
+const joinsTicket = `
+  FROM tickets t
+  LEFT JOIN categorias c ON c.id = t.categoria_sugerida_id
+  LEFT JOIN usuarios tecnico ON tecnico.id = t.tecnico_id`;
+const camposResumen = `
+  t.id, t.titulo, t.estado,
+  c.nombre AS categoria_sugerida,
+  t.prioridad_sugerida,
+  tecnico.nombre AS tecnico,
+  t.fecha_creacion`;
+
+export function listarTickets(conexion: Database.Database, tecnicoId?: number): TicketResumen[] {
+  const filtroTecnico = tecnicoId === undefined ? '' : ' WHERE t.tecnico_id = ?';
+  const orden = ' ORDER BY t.fecha_creacion DESC, t.id DESC';
+  const consulta = conexion.prepare(`SELECT ${camposResumen}${joinsTicket}${filtroTecnico}${orden}`);
+  return (tecnicoId === undefined ? consulta.all() : consulta.all(tecnicoId)) as TicketResumen[];
+}
+
+export function obtenerTicket(
+  id: number,
+  conexion: Database.Database,
+  tecnicoId?: number,
+): TicketDetalle | undefined {
+  const filtroTecnico = tecnicoId === undefined ? '' : ' AND t.tecnico_id = ?';
+  const consulta = conexion.prepare(
+    `SELECT ${camposResumen}, t.solicitante, t.descripcion, t.impacto, t.urgencia
+     ${joinsTicket} WHERE t.id = ?${filtroTecnico}`,
+  );
+  const resultado = tecnicoId === undefined
+    ? consulta.get(id)
+    : consulta.get(id, tecnicoId);
+  return resultado as TicketDetalle | undefined;
+}
+
 export function crearTicket(
   datos: DatosTicket,
   usuarioId: number,

@@ -5,11 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { crearRutasTickets } from './tickets.routes';
 
 let conexion: Database.Database;
-const usuarioSesion = { id: 7 };
-const autenticar: RequestHandler = (_req, res, next) => {
-  res.locals.usuario = usuarioSesion;
-  next();
-};
+const usuarioSesion = { id: 7, rol: 'agente' };
 const cuerpo = {
   solicitante: 'Ana García',
   titulo: 'Sin conexión a la red',
@@ -18,21 +14,41 @@ const cuerpo = {
   urgencia: 'Alta',
 };
 
-function crearApp(conAutenticacion = true) {
+function autenticarComo(usuario: { id: number; rol: string }): RequestHandler {
+  return (_req, res, next) => {
+    res.locals.usuario = usuario;
+    next();
+  };
+}
+
+function crearApp(conAutenticacion = true, usuario = usuarioSesion) {
   const app = express();
   app.use(express.json());
   app.use('/api/tickets', crearRutasTickets({
     conexion,
-    requiereAutenticacion: conAutenticacion ? autenticar : undefined,
+    requiereAutenticacion: conAutenticacion ? autenticarComo(usuario) : undefined,
   }));
   return app;
+}
+
+function insertarTicket(titulo: string, tecnicoId: number | null): number {
+  const resultado = conexion.prepare(`
+    INSERT INTO tickets (
+      solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por,
+      tecnico_id, categoria_sugerida_id, prioridad_sugerida
+    ) VALUES ('Ana', ?, 'Detalle de prueba', 'Alto', 'Alta', 'Nuevo', 7, ?, 3, 'Alta')
+  `).run(titulo, tecnicoId);
+  return Number(resultado.lastInsertRowid);
 }
 
 beforeEach(() => {
   conexion = new Database(':memory:');
   conexion.exec(`
-    CREATE TABLE usuarios (id INTEGER PRIMARY KEY);
-    INSERT INTO usuarios (id) VALUES (7);
+    CREATE TABLE usuarios (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, rol TEXT NOT NULL);
+    INSERT INTO usuarios (id, nombre, rol) VALUES (7, 'Agente de prueba', 'agente');
+    INSERT INTO usuarios (id, nombre, rol) VALUES (9, 'Técnico de prueba', 'tecnico');
+    CREATE TABLE categorias (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL);
+    INSERT INTO categorias (id, nombre) VALUES (3, 'Redes');
     CREATE TABLE tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       solicitante TEXT NOT NULL,
@@ -43,6 +59,7 @@ beforeEach(() => {
       estado TEXT NOT NULL DEFAULT 'Nuevo',
       fecha_creacion TEXT NOT NULL DEFAULT '2026-11-13T00:00:00.000Z',
       creado_por INTEGER NOT NULL REFERENCES usuarios(id),
+      tecnico_id INTEGER REFERENCES usuarios(id),
       categoria_sugerida_id INTEGER,
       prioridad_sugerida TEXT,
       grupo_sugerido_id INTEGER,
@@ -64,7 +81,7 @@ describe('POST /api/tickets', () => {
     app.use(express.json());
     app.use('/api/tickets', crearRutasTickets({
       conexion,
-      requiereAutenticacion: autenticar,
+      requiereAutenticacion: autenticarComo(usuarioSesion),
       sugerir: () => sugerencia,
     }));
 
@@ -99,5 +116,83 @@ describe('POST /api/tickets', () => {
 
     expect(respuesta.status).toBe(401);
     expect(conexion.prepare('SELECT COUNT(*) AS total FROM tickets').get()).toEqual({ total: 0 });
+  });
+});
+
+describe('GET /api/tickets', () => {
+  it('lista los tickets con categoría, prioridad, técnico y fecha', async () => {
+    const asignadoId = insertarTicket('Sin conexión', 9);
+    insertarTicket('Sin asignar', null);
+
+    const respuesta = await request(crearApp()).get('/api/tickets');
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.tickets).toHaveLength(2);
+    expect(respuesta.body.tickets).toContainEqual(expect.objectContaining({
+      id: asignadoId,
+      titulo: 'Sin conexión',
+      estado: 'Nuevo',
+      categoria_sugerida: 'Redes',
+      prioridad_sugerida: 'Alta',
+      tecnico: 'Técnico de prueba',
+      fecha_creacion: '2026-11-13T00:00:00.000Z',
+    }));
+  });
+
+  it('limita al técnico a sus tickets asignados', async () => {
+    const asignadoId = insertarTicket('Asignado a técnico', 9);
+    insertarTicket('Asignado a otro', 7);
+    insertarTicket('Sin asignar', null);
+
+    const respuesta = await request(crearApp(true, { id: 9, rol: 'tecnico' })).get('/api/tickets');
+
+    expect(respuesta.status).toBe(200);
+    expect(respuesta.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([asignadoId]);
+  });
+
+  it('responde 401 sin sesión y 403 con rol no autorizado', async () => {
+    const sinSesion = await request(crearApp(false)).get('/api/tickets');
+    const rolInvalido = await request(crearApp(true, { id: 7, rol: 'observador' })).get('/api/tickets');
+
+    expect(sinSesion.status).toBe(401);
+    expect(rolInvalido.status).toBe(403);
+  });
+});
+
+describe('GET /api/tickets/:id', () => {
+  it('devuelve los datos del detalle al agente y al técnico asignado', async () => {
+    const ticketId = insertarTicket('Detalle de red', 9);
+    const agente = await request(crearApp()).get(`/api/tickets/${ticketId}`);
+    const tecnico = await request(crearApp(true, { id: 9, rol: 'tecnico' })).get(`/api/tickets/${ticketId}`);
+
+    expect(agente.status).toBe(200);
+    expect(agente.body).toMatchObject({
+      id: ticketId,
+      titulo: 'Detalle de red',
+      solicitante: 'Ana',
+      descripcion: 'Detalle de prueba',
+      impacto: 'Alto',
+      urgencia: 'Alta',
+      categoria_sugerida: 'Redes',
+      prioridad_sugerida: 'Alta',
+      tecnico: 'Técnico de prueba',
+    });
+    expect(tecnico.status).toBe(200);
+    expect(tecnico.body.id).toBe(ticketId);
+  });
+
+  it('oculta al técnico los tickets no asignados a su usuario', async () => {
+    const ticketAjeno = insertarTicket('Otro ticket', 7);
+    const respuesta = await request(crearApp(true, { id: 9, rol: 'tecnico' }))
+      .get(`/api/tickets/${ticketAjeno}`);
+
+    expect(respuesta.status).toBe(404);
+  });
+
+  it('valida el ID y devuelve 404 cuando no existe', async () => {
+    const app = crearApp();
+
+    expect((await request(app).get('/api/tickets/no-valido')).status).toBe(400);
+    expect((await request(app).get('/api/tickets/999')).status).toBe(404);
   });
 });

@@ -2,7 +2,13 @@ import { Router, type RequestHandler } from 'express';
 import type Database from 'better-sqlite3';
 import { z } from 'zod';
 import { db as conexionPredeterminada } from '../../db/connection';
-import { crearTicket, type DatosTicket, type SugerenciaTicket } from './tickets.service';
+import {
+  crearTicket,
+  listarTickets,
+  obtenerTicket,
+  type DatosTicket,
+  type SugerenciaTicket,
+} from './tickets.service';
 
 const esquemaTicket = z.object({
   solicitante: z.string().trim().min(1).max(120),
@@ -22,11 +28,64 @@ const denegarSinAutenticacion: RequestHandler = (_req, res) => {
   res.status(401).json({ message: 'Inicia sesión para registrar un ticket.' });
 };
 
+function usuarioDeSesion(res: Parameters<RequestHandler>[1]): { id: number; rol: string } | null {
+  const usuario = res.locals.usuario as { id?: number; rol?: string } | undefined;
+  if (!usuario || typeof usuario.id !== 'number' || !Number.isInteger(usuario.id) || usuario.id <= 0) {
+    return null;
+  }
+  return { id: usuario.id, rol: usuario.rol ?? '' };
+}
+
+function rolPuedeConsultar(rol: string): boolean {
+  return rol === 'agente' || rol === 'administrador' || rol === 'tecnico';
+}
+
 /** Montar en /api/tickets; Auth proporciona el middleware y Triaje el sugeridor. */
 export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
   const router = Router();
   const conexion = opciones.conexion ?? conexionPredeterminada;
   const requiereAutenticacion = opciones.requiereAutenticacion ?? denegarSinAutenticacion;
+
+  router.get('/', requiereAutenticacion, (_req, res) => {
+    const usuario = usuarioDeSesion(res);
+    if (!usuario) {
+      res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
+      return;
+    }
+    if (!rolPuedeConsultar(usuario.rol)) {
+      res.status(403).json({ message: 'No tienes permiso para consultar tickets.' });
+      return;
+    }
+
+    const tecnicoId = usuario.rol === 'tecnico' ? usuario.id : undefined;
+    res.json({ tickets: listarTickets(conexion, tecnicoId) });
+  });
+
+  router.get('/:id', requiereAutenticacion, (req, res) => {
+    const usuario = usuarioDeSesion(res);
+    if (!usuario) {
+      res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
+      return;
+    }
+    if (!rolPuedeConsultar(usuario.rol)) {
+      res.status(403).json({ message: 'No tienes permiso para consultar tickets.' });
+      return;
+    }
+
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ message: 'Id de ticket inválido.' });
+      return;
+    }
+
+    const tecnicoId = usuario.rol === 'tecnico' ? usuario.id : undefined;
+    const ticket = obtenerTicket(id, conexion, tecnicoId);
+    if (!ticket) {
+      res.status(404).json({ message: 'Ticket no encontrado.' });
+      return;
+    }
+    res.json(ticket);
+  });
 
   router.post('/', requiereAutenticacion, (req, res) => {
     const datos = esquemaTicket.safeParse(req.body);
