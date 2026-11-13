@@ -1,7 +1,6 @@
 import { Router, type RequestHandler } from 'express';
 import { getUsuarioPorId, getUsuarioPorNombre, login, logout, me } from './auth.controller';
 import { loginRequired, roleRequired } from './auth.middleware';
-import { sessionMiddleware } from './session';
 
 /**
  * Middlewares que se inyectan al montar el router de consulta de usuarios.
@@ -27,9 +26,6 @@ const denegarSinAutenticacion: RequestHandler = (_req, res) => {
 export function crearAuthRouter(opciones: OpcionesAuthRouter = {}): Router {
   const router = Router();
 
-  // La sesión vive dentro del módulo, antes de cualquier middleware que la use.
-  router.use(sessionMiddleware);
-
   router.post('/login', login);
   router.post('/logout', logout);
   router.get('/me', me);
@@ -51,6 +47,7 @@ export const authRouter = crearAuthRouter();
 /**
  * Router listo para montar en app.ts:
  *   app.use('/api/auth', authRouterCompleto);
+ * La aplicación debe montar `sessionMiddleware` antes de las rutas.
  * /usuarios/... exige sesión y rol administrador.
  */
 export const authRouterCompleto = crearAuthRouter({

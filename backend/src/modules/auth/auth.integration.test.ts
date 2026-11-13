@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { app } from '../../app';
-import { DATABASE_PATH, ES_BASE_EN_MEMORIA } from '../../db/connection';
+import { DATABASE_PATH, db, ES_BASE_EN_MEMORIA } from '../../db/connection';
 import { authRouter } from './auth.routes';
 import { loginRequired } from './auth.middleware';
 import { sessionMiddleware } from './session';
@@ -70,6 +70,56 @@ describe('Integración AUTH en app.ts', () => {
   });
 });
 
+describe('Integración Triaje con la sesión de AUTH', () => {
+  const solicitud = {
+    titulo: 'Sin conexión',
+    descripcion: 'No me conecta el wifi',
+    impacto: 'Alto',
+    urgencia: 'Alta',
+  };
+
+  it('sugiere para agente y administrador con la sesión persistente', async () => {
+    const ticketsAntes = (db.prepare('SELECT COUNT(*) AS total FROM tickets').get() as { total: number }).total;
+    for (const [usuario, rol] of [['agente', 'agente'], ['admin', 'administrador']]) {
+      const agente = await sesion(usuario);
+      const r = await agente.post('/api/triaje/sugerir').send(solicitud);
+      expect(r.status).toBe(200);
+      expect(r.body).toMatchObject({
+        categoria: 'Red',
+        prioridad: 'Crítica',
+        grupo_id: expect.any(Number),
+        tecnico_id: expect.any(Number),
+      });
+      expect((await agente.get('/api/auth/me')).body.rol).toBe(rol);
+    }
+    const ticketsDespues = (db.prepare('SELECT COUNT(*) AS total FROM tickets').get() as { total: number }).total;
+    expect(ticketsDespues).toBe(ticketsAntes);
+  });
+
+  it('rechaza sin sesión (401), con rol técnico (403) y no acepta encabezados de identidad', async () => {
+    expect((await request(app).post('/api/triaje/sugerir').send(solicitud)).status).toBe(401);
+    const tecnico = await sesion('tecnico1');
+    expect((await tecnico.post('/api/triaje/sugerir').send(solicitud)).status).toBe(403);
+    const encabezados = await request(app)
+      .post('/api/triaje/sugerir')
+      .set('x-usuario', 'admin')
+      .set('x-rol', 'administrador')
+      .set('authorization', 'Bearer admin')
+      .send(solicitud);
+    expect(encabezados.status).toBe(401);
+  });
+
+  it('valida impacto, urgencia y descripción', async () => {
+    const agente = await sesion('agente');
+    const impacto = await agente.post('/api/triaje/sugerir').send({ ...solicitud, impacto: 'Extremo' });
+    const urgencia = await agente.post('/api/triaje/sugerir').send({ ...solicitud, urgencia: 'Inmediata' });
+    const descripcion = await agente.post('/api/triaje/sugerir').send({ ...solicitud, descripcion: '  ' });
+    expect(impacto.status).toBe(400);
+    expect(urgencia.status).toBe(400);
+    expect(descripcion.status).toBe(400);
+  });
+});
+
 describe('Protección CSRF (verificación de origen)', () => {
   it('rechaza login desde un origen ajeno (403)', async () => {
     const r = await request(app)
@@ -93,6 +143,15 @@ describe('Protección CSRF (verificación de origen)', () => {
       .post('/api/usuarios')
       .set('Origin', 'http://malicioso.example')
       .send({ nombre: 'CSRF Test', usuario: 'zz_csrf_test', password: CLAVE, rol: 'agente' });
+    expect(r.status).toBe(403);
+  });
+
+  it('rechaza una sugerencia de triaje desde un origen ajeno (403)', async () => {
+    const agente = await sesion('agente');
+    const r = await agente
+      .post('/api/triaje/sugerir')
+      .set('Origin', 'http://malicioso.example')
+      .send({ descripcion: 'No funciona wifi', impacto: 'Alto', urgencia: 'Alta' });
     expect(r.status).toBe(403);
   });
 

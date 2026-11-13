@@ -7,13 +7,17 @@ AUTH-04 (administración de usuarios).
 ## Integración en `backend/src/app.ts`
 
 ```ts
+app.use(sessionMiddleware); // una sola instancia compartida por todos los módulos
 app.use('/api/auth', csrfProtection, authRouterCompleto); // login/logout/me + usuarios
 app.use('/api/usuarios', csrfProtection, usuariosRouter); // administración (solo admin)
+app.use('/api', csrfProtection, crearRutasTriaje({ requiereRol: roleRequired }));
 ```
 
 Se conservan `/api/health`, CORS (`origin: http://localhost:5173`, `credentials`)
 y la configuración de Express. En producción se activa `app.set('trust proxy', 1)`
 para que la cookie `secure: 'auto'` funcione tras un proxy inverso.
+La sesión se monta una vez en la aplicación; los routers AUTH y Triaje no crean
+instancias de sesión propias.
 
 | Método y ruta | Acceso | Descripción |
 |---|---|---|
@@ -71,32 +75,13 @@ router.post('/sugerir', roleRequired('agente', 'administrador'), (req, res) => {
 - El rol y el estado se releen de la base en cada petición, así que desactivar o
   cambiar el rol de un usuario surte efecto de inmediato.
 
-### Coordinación con Triaje (`feature/triaje`, ya en `main`)
+### Integración con Triaje
 
-`backend/src/modules/triaje/rutas.ts` lee `req.session.usuario` (un objeto dentro de la
-sesión) con su propio `usuarioDeSesion(req)`, mientras que AUTH guarda `req.session.userId`.
-Para unificar la fuente, al integrar Triaje hay que **cambiar solo el acceso a sesión**
-(no la lógica del clasificador, prioridades ni decisiones):
-
-```diff
-- export function usuarioDeSesion(req: Request): UsuarioSesion | undefined {
--   return (req as ...).session?.usuario;
-- }
-+ import { usuarioDeRequest } from '../auth/auth.middleware';
-+ export const usuarioDeSesion = usuarioDeRequest; // { id, nombre, usuario, rol, grupo_id }
-```
-
-y montar las rutas inyectando el guard real:
-
-```ts
-app.use('/api', crearRutasTriaje({ requiereRol: roleRequired }));
-```
-
-`auth.integration.test.ts` prueba el contrato con un router tipo Triaje: sin sesión → 401,
-con sesión → resuelve `{ id, rol }` desde `req.session.userId`, ignora encabezados del
-cliente y confirma que **no** se guarda un objeto de usuario en la sesión.
-
-No se modificó la lógica del clasificador, prioridades ni decisiones de Triaje.
+Triaje usa `roleRequired('agente', 'administrador')` y el helper canónico
+`usuarioDeRequest(req)` al registrar decisiones. Sus operaciones POST también
+pasan por la protección CSRF compartida. La identidad se resuelve desde
+`req.session.userId`; los roles y el estado del usuario se vuelven a consultar
+en la base de datos en cada petición.
 
 ## Pruebas
 

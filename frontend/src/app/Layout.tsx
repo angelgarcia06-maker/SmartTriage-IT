@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Home, LogOut, ShieldCheck, Users } from 'lucide-react';
+import { BrainCircuit, Home, LogOut, ShieldCheck, Users } from 'lucide-react';
 import { useAuth } from '../modules/auth/useAuth';
 
 const ETIQUETA_ROL: Record<string, string> = {
@@ -43,6 +43,11 @@ export default function Layout() {
             <NavLink to="/" end className={claseNav}>
               <Home size={18} /> Inicio
             </NavLink>
+            {(usuario?.rol === 'agente' || usuario?.rol === 'administrador') && (
+              <NavLink to="/triaje" className={claseNav}>
+                <BrainCircuit size={18} /> Triaje
+              </NavLink>
+            )}
             {usuario?.rol === 'administrador' && (
               <NavLink to="/usuarios" className={claseNav}>
                 <Users size={18} /> Gestión de usuarios

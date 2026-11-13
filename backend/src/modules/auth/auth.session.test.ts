@@ -4,9 +4,11 @@ import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import { db } from '../../db/connection';
 import { authRouter } from './auth.routes';
+import { sessionMiddleware } from './session';
 
 const app = express();
 app.use(express.json());
+app.use(sessionMiddleware);
 app.use('/api/auth', authRouter);
 
 const CLAVE = 'Cambiar123!';

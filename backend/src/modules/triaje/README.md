@@ -77,19 +77,27 @@ import { CONDICION_DECISION_CONFIRMADA } from '../triaje/decision';
 db.prepare(`SELECT ... FROM tickets WHERE ${CONDICION_DECISION_CONFIRMADA}`);
 ```
 
-## Rutas (`rutas.ts`) — montar en `app.ts` (Integrante 5)
+## Rutas (`rutas.ts`)
 
 ```ts
+import { roleRequired } from './modules/auth/auth.middleware';
 import { crearRutasTriaje } from './modules/triaje/rutas';
-app.use('/api', crearRutasTriaje({ requiereRol: roleRequired })); // roleRequired de AUTH-03
+app.use('/api', csrfProtection, crearRutasTriaje({ requiereRol: roleRequired }));
 ```
+
+`sessionMiddleware` se monta una sola vez en `app.ts`, antes de AUTH y Triaje.
+Las rutas de Triaje utilizan el guard real de AUTH y leen la identidad del usuario
+desde `req.session.userId`; nunca aceptan encabezados de identidad.
 
 | Método y ruta | Roles | Respuestas |
 |---|---|---|
+| `GET /api/triaje/catalogos` | agente, administrador | 200 categorías, grupos y técnicos activos de SQLite · 401 · 403 |
 | `POST /api/triaje/sugerir` | agente, administrador | 200 `SugerenciaTriaje` · 400 datos inválidos · 401 · 403 |
 | `POST /api/tickets/:id/decision` | agente, administrador | 201 resultado · 400 · 401 · 403 · 404 · 409 ya decidido |
 
-Mientras AUTH-03 no esté listo se usa `rolRequeridoProvisional`, que lee `req.session.usuario = { id, rol }`.
+La pantalla `/triaje` permite pedir una sugerencia a la API sin guardar un ticket.
+La decisión solo se registra para un ticket ya persistido; la pantalla de demo no
+crea tickets ni llama al endpoint de decisiones.
 
 ## Pruebas
 

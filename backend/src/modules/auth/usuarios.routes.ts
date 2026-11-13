@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import { loginRequired, roleRequired } from './auth.middleware';
 import { actualizar, crear, listar, listarGrupos } from './usuarios.controller';
-import { sessionMiddleware } from './session';
 
 /**
  * Administración de usuarios (AUTH-04). Solo administrador.
@@ -10,7 +9,6 @@ import { sessionMiddleware } from './session';
  */
 export const usuariosRouter = Router();
 
-usuariosRouter.use(sessionMiddleware);
 usuariosRouter.use(loginRequired, roleRequired('administrador'));
 
 usuariosRouter.get('/grupos', listarGrupos); // antes de /:id

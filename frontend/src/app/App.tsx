@@ -5,6 +5,7 @@ import RutaProtegida from '../modules/auth/RutaProtegida';
 import { useAuth } from '../modules/auth/useAuth';
 import Layout from './Layout';
 import InicioPage from './InicioPage';
+import TriajePage from '../modules/triaje/TriajePage';
 
 /** /login: si ya hay sesión, redirige al inicio; si no, muestra el formulario. */
 function RutaLogin() {
@@ -28,6 +29,14 @@ export function App() {
         }
       >
         <Route index element={<InicioPage />} />
+        <Route
+          path="triaje"
+          element={
+            <RutaProtegida roles={['agente', 'administrador']}>
+              <TriajePage />
+            </RutaProtegida>
+          }
+        />
         <Route
           path="usuarios"
           element={

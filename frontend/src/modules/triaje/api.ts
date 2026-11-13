@@ -1,5 +1,6 @@
 import { API } from '../../../../shared/contracts/api.contract';
 import type { DatosTicket, DecisionTriaje, SugerenciaTriaje } from '../../../../shared/types/triaje.types';
+import type { CatalogosTriaje } from './PanelSugerencia';
 
 export interface ResultadoDecision {
   ticket_id: number;
@@ -20,8 +21,23 @@ async function enviar<T>(url: string, cuerpo: unknown): Promise<T> {
   return datos as T;
 }
 
+async function consultar<T>(url: string): Promise<T> {
+  const r = await fetch(url, { credentials: 'include' });
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const error = datos as { error?: string; message?: string };
+    throw new Error(error.message ?? error.error ?? `Error ${r.status}`);
+  }
+  return datos as T;
+}
+
+/** GET /api/triaje/catalogos — catálogos activos de SQLite para agentes y administradores. */
+export function obtenerCatalogos(): Promise<CatalogosTriaje> {
+  return consultar(API.triaje.catalogs);
+}
+
 /** POST /api/triaje/sugerir — lo usa el formulario de TICK-01 antes de guardar. */
-export function pedirSugerencia(ticket: DatosTicket): Promise<SugerenciaTriaje> {
+export function pedirSugerencia(ticket: Pick<DatosTicket, 'titulo' | 'descripcion' | 'impacto' | 'urgencia'>): Promise<SugerenciaTriaje> {
   return enviar(API.triaje.suggest, ticket);
 }
 

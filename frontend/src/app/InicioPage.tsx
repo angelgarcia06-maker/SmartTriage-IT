@@ -7,7 +7,7 @@ type Health = { status: string; application: string; version: string; database: 
 const features = [
   { name: 'Autenticación y usuarios', owner: 'Integrante 1', icon: ShieldCheck, status: 'Integrado — AUTH' },
   { name: 'Tickets e historial', owner: 'Integrante 2', icon: Ticket, status: 'Pendiente — TICK' },
-  { name: 'Triaje Nivel 1', owner: 'Integrante 3', icon: BrainCircuit, status: 'Pendiente — TRI' },
+  { name: 'Triaje Nivel 1', owner: 'Integrante 3', icon: BrainCircuit, status: 'Integrado — TRI' },
   { name: 'Administración y métricas', owner: 'Integrante 4', icon: ChartColumn, status: 'Pendiente — ADM' },
   { name: 'Pruebas e integración', owner: 'Integrante 5', icon: ClipboardCheck, status: 'En preparación — QA' },
 ];
@@ -75,7 +75,7 @@ export default function InicioPage() {
 
       <div className="alert alert-info mt-4 small">
         Módulo AUTH integrado: inicio y cierre de sesión, sesión persistente y gestión de usuarios solo para
-        administradores. Los módulos de Tickets, Triaje y Administración se integrarán en sus PR.
+        administradores. Triaje ofrece una demostración de sugerencias sin persistir tickets.
       </div>
     </>
   );

@@ -5,6 +5,7 @@ import { db } from '../../db/connection';
 import { authRouter, crearAuthRouter } from './auth.routes';
 import { buscarPorId, buscarPorUsuario } from './auth.repository';
 import { aDtoPublico, obtenerUsuarioPorId, obtenerUsuarioPorUsuario } from './auth.service';
+import { sessionMiddleware } from './session';
 
 /**
  * Pruebas de AUTH-01.
@@ -16,11 +17,13 @@ import { aDtoPublico, obtenerUsuarioPorId, obtenerUsuarioPorUsuario } from './au
 
 /** Router por defecto: sin middlewares inyectados debe fallar cerrado. */
 const appSinConfigurar = express();
+appSinConfigurar.use(sessionMiddleware);
 appSinConfigurar.use('/api/auth', authRouter);
 
 /** App de prueba con middlewares inyectados (simulan AUTH-02/AUTH-03). */
 function crearAppProtegida(): express.Express {
   const app = express();
+  app.use(sessionMiddleware);
   const permitir: RequestHandler = (_req, _res, next) => next();
   app.use(
     '/api/auth',
@@ -94,6 +97,7 @@ describe('AUTH-01: protección de rutas', () => {
   it('falla cerrado si solo se inyecta autenticación (falta autorización)', async () => {
     const permitir: RequestHandler = (_req, _res, next) => next();
     const soloAuth = express();
+    soloAuth.use(sessionMiddleware);
     soloAuth.use('/api/auth', crearAuthRouter({ requiereAutenticacion: permitir }));
     const r = await request(soloAuth).get('/api/auth/usuarios/1');
     expect(r.status).toBe(401);
