@@ -127,3 +127,63 @@ Se amplió CatalogosPanel.tsx con:
 - Comprobar el funcionamiento en el navegador.
 
 No se realizaron modificaciones a la rama main.
+
+---
+
+## ADM-03: Diccionario editable y probar frase
+
+### Objetivo
+
+Permitir que el administrador gestione palabras clave
+asociadas a categorías y pruebe la clasificación de
+incidencias utilizando el motor de Triaje existente.
+
+### Funcionalidades implementadas
+
+- Consultar palabras clave por categoría.
+- Agregar nuevas palabras.
+- Editar palabras y sus categorías.
+- Quitar palabras del diccionario.
+- Evitar duplicados mediante normalización.
+- Validar categorías activas.
+- Probar frases utilizando el clasificador existente.
+
+### Prueba del clasificador
+
+Frase: "Mi proyector no enciende"
+
+1. Sin la palabra "proyector": categoría Otros.
+2. Al agregar "proyector" a Hardware: categoría Hardware.
+3. Al quitar "proyector": categoría Otros.
+
+El cambio se refleja sin reiniciar el servidor.
+
+### Archivos desarrollados
+
+Backend:
+- diccionario.routes.ts
+- diccionario.routes.test.ts
+
+Frontend:
+- diccionario.api.ts
+- DiccionarioPanel.tsx
+
+### Resultados de pruebas
+
+- 13 pruebas nuevas de ADM-03 aprobadas.
+- 92 pruebas totales aprobadas.
+- Compilación del backend correcta.
+- Compilación del frontend correcta.
+- Verificados duplicados, permisos simulados,
+  edición, eliminación y actualización de clasificación.
+
+### Integración pendiente
+
+- Conectar los middlewares reales de autenticación.
+- Montar las rutas administrativas en Express.
+- Incorporar DiccionarioPanel en la interfaz principal.
+- Realizar pruebas visuales y capturas antes/después.
+
+La integración corresponde al integrante responsable.
+El trabajo se desarrolla en feature/panel-admin.
+No se realizan fusiones a main.
