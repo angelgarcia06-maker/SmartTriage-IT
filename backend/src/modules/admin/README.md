@@ -63,3 +63,67 @@ Frontend:
 
 La integración de archivos compartidos corresponde
 al integrante encargado de integración.
+
+---
+
+## ADM-02: CRUD de categorías y grupos
+
+### Objetivo
+
+Implementar la administración de categorías y grupos
+de soporte técnico mediante operaciones de creación,
+edición y desactivación.
+
+### Funcionalidades implementadas
+
+Grupos:
+- Registrar nuevos grupos.
+- Editar nombres de grupos activos.
+- Desactivar grupos sin eliminar registros.
+- Evitar nombres duplicados.
+- Impedir desactivar grupos con categorías activas.
+
+Categorías:
+- Registrar nuevas categorías.
+- Editar nombres y grupos responsables.
+- Asignar únicamente grupos activos.
+- Evitar categorías duplicadas.
+- Desactivar categorías sin eliminar registros.
+
+### Seguridad
+
+Las operaciones administrativas están preparadas
+para utilizar middlewares de autenticación y
+autorización.
+
+Por defecto, se rechazan las modificaciones
+si la seguridad no está configurada.
+
+Las pruebas utilizan middlewares simulados.
+La conexión con AUTH-03 está pendiente
+de coordinación con el integrador.
+
+### Frontend
+
+Se amplió CatalogosPanel.tsx con:
+- Formulario de categorías.
+- Formulario de grupos.
+- Botones para editar.
+- Botones para desactivar.
+- Mensajes de confirmación y errores.
+
+### Pruebas
+
+- 13 pruebas nuevas de ADM-02 aprobadas.
+- 79 pruebas totales del proyecto aprobadas.
+- Compilación del frontend correcta.
+- Compilación del backend correcta.
+
+### Integración pendiente
+
+- Conectar el middleware real de administrador.
+- Montar las rutas CRUD en la aplicación Express.
+- Integrar CatalogosPanel en la interfaz principal.
+- Comprobar el funcionamiento en el navegador.
+
+No se realizaron modificaciones a la rama main.
