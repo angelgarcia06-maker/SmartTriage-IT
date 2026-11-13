@@ -128,6 +128,67 @@ describe('Integración Triaje con la sesión de AUTH', () => {
   });
 });
 
+describe('Integración Tickets con AUTH-05', () => {
+  const nuevoTicket = {
+    solicitante: 'Prueba de integración',
+    titulo: 'Conexión WiFi intermitente',
+    descripcion: 'La conexión wifi se pierde en la sala de reuniones.',
+    impacto: 'Alto',
+    urgencia: 'Alta',
+  };
+
+  it('requiere sesión y token CSRF, y registra la sugerencia real de Triaje', async () => {
+    expect((await request(app).post('/api/tickets').send(nuevoTicket)).status).toBe(401);
+
+    const agente = await sesion('agente');
+    expect((await agente.post('/api/tickets').send(nuevoTicket)).status).toBe(403);
+
+    const csrf = await agente.get('/api/auth/csrf');
+    expect(csrf.status).toBe(200);
+    const creado = await agente
+      .post('/api/tickets')
+      .set('X-CSRF-Token', csrf.body.csrfToken)
+      .send(nuevoTicket);
+
+    expect(creado.status).toBe(201);
+    expect(creado.body).toMatchObject({
+      id: expect.any(Number),
+      sugerencia: {
+        categoria: 'Red',
+        prioridad: 'Crítica',
+        grupo_id: expect.any(Number),
+        tecnico_id: expect.any(Number),
+      },
+    });
+    const detalle = await agente.get(`/api/tickets/${creado.body.id}`);
+    expect(detalle.status).toBe(200);
+    expect(detalle.body).toMatchObject({
+      titulo: nuevoTicket.titulo,
+      estado: 'Nuevo',
+      categoria_sugerida: 'Red',
+    });
+    const sinToken = await agente
+      .patch(`/api/tickets/${creado.body.id}/estado`)
+      .send({ estado: 'Asignado' });
+    const conToken = await agente
+      .patch(`/api/tickets/${creado.body.id}/estado`)
+      .set('X-CSRF-Token', csrf.body.csrfToken)
+      .send({ estado: 'Asignado' });
+    expect(sinToken.status).toBe(403);
+    expect(conToken.status).toBe(200);
+  });
+
+  it('impide que técnicos creen tickets aunque tengan sesión y token', async () => {
+    const tecnico = await sesion('tecnico1');
+    const csrf = await tecnico.get('/api/auth/csrf');
+    const respuesta = await tecnico
+      .post('/api/tickets')
+      .set('X-CSRF-Token', csrf.body.csrfToken)
+      .send(nuevoTicket);
+    expect(respuesta.status).toBe(403);
+  });
+});
+
 describe('Protección CSRF (verificación de origen)', () => {
   it('rechaza login desde un origen ajeno (403)', async () => {
     const r = await request(app)

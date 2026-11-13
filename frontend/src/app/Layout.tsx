@@ -9,6 +9,7 @@ import {
   Menu,
   Settings2,
   ShieldCheck,
+  Ticket,
   Users,
   X,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ const ETIQUETA_ROL: Record<string, string> = {
 const TITULOS: Record<string, string> = {
   '/': 'Inicio',
   '/triaje': 'Triaje inteligente',
+  '/tickets': 'Tickets',
   '/usuarios': 'Gestión de usuarios',
   '/admin/dashboard': 'Dashboard',
   '/admin/catalogos': 'Catálogos',
@@ -113,6 +115,11 @@ export default function Layout() {
           {(usuario?.rol === 'agente' || usuario?.rol === 'administrador') && (
             <NavLink to="/triaje" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
               <BrainCircuit size={18} aria-hidden="true" /> Triaje
+            </NavLink>
+          )}
+          {usuario && (
+            <NavLink to="/tickets" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
+              <Ticket size={18} aria-hidden="true" /> Tickets
             </NavLink>
           )}
         </nav>

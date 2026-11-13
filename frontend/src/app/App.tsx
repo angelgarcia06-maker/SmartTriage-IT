@@ -6,6 +6,7 @@ import { useAuth } from '../modules/auth/useAuth';
 import Layout from './Layout';
 import InicioPage from './InicioPage';
 import TriajePage from '../modules/triaje/TriajePage';
+import TicketsPage from '../modules/tickets/TicketsPage';
 import { CatalogosPanel } from '../modules/admin/CatalogosPanel';
 import { DiccionarioPanel } from '../modules/admin/DiccionarioPanel';
 import { DashboardPanel } from '../modules/admin/DashboardPanel';
@@ -37,6 +38,14 @@ export function App() {
           element={
             <RutaProtegida roles={['agente', 'administrador']}>
               <TriajePage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="tickets"
+          element={
+            <RutaProtegida roles={['agente', 'administrador', 'tecnico']}>
+              <TicketsPage />
             </RutaProtegida>
           }
         />

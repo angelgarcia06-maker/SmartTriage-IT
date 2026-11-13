@@ -12,6 +12,7 @@
     "test": "npm run test -w backend",
     "db:init": "npm run db:init -w backend",
     "db:seed": "npm run db:seed -w backend",
+    "db:seed:demo": "npm run db:seed:demo -w backend",
     "check": "npm run build && npm run test"
   },
   "devDependencies": {
