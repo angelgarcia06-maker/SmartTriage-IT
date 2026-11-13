@@ -46,6 +46,9 @@ function aTexto(valor: number | string | null): string | null {
 }
 
 function validarDecision(conexion: Database.Database, d: DecisionTriaje): void {
+  if (d.grupo_final_id == null && d.tecnico_id != null) {
+    throw new ErrorDecision(400, 'No se puede asignar un técnico sin grupo resolutor.');
+  }
   const categoria = conexion.prepare('SELECT id FROM categorias WHERE id = ? AND activa = 1').get(d.categoria_final_id);
   if (!categoria) throw new ErrorDecision(400, 'La categoría final no existe o está inactiva.');
   if (!PRIORIDADES.includes(d.prioridad_final)) throw new ErrorDecision(400, 'Prioridad final inválida.');

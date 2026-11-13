@@ -67,6 +67,7 @@ Pruebas: `backend/src/modules/triaje/clasificador.test.ts` (`npm test`).
 - añade una fila a `historial` (nunca lo sobrescribe);
 - un segundo intento sobre el mismo ticket → error 409, sin filas nuevas.
 - Valida categoría activa, grupo activo y que el técnico sea técnico activo del grupo final (400).
+- **No se permite asignar un técnico cuando no existe un grupo resolutor final** (`grupo_final_id: null` + `tecnico_id` no nulo → 400, sin persistir cambios).
 
 Supuesto: la tabla no tiene `tecnico_sugerido_id`, así que el técnico sugerido es el `tickets.tecnico_id` que guarda TICK-01 al crear el ticket.
 
@@ -92,4 +93,4 @@ Mientras AUTH-03 no esté listo se usa `rolRequeridoProvisional`, que lee `req.s
 
 ## Pruebas
 
-`npm test` — 61 pruebas del módulo con SQLite en memoria (`fixture.ts` replica el seed): clasificador, matriz, sugerencia/técnico, decisión y rutas HTTP con supertest.
+`npm test` — 63 pruebas del módulo con SQLite en memoria (`fixture.ts` replica el seed): clasificador, matriz, sugerencia/técnico, decisión y rutas HTTP con supertest.

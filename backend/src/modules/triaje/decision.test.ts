@@ -124,6 +124,24 @@ describe('registrarDecision — validación (no deja datos a medias)', () => {
   });
 });
 
+describe('registrarDecision — técnico sin grupo resolutor', () => {
+  it('rechaza con 400 el técnico cuando grupo_final_id es null y no persiste nada', () => {
+    const decision: DecisionTriaje = { ...sugerida, grupo_final_id: null, tecnico_id: idUsuario(bd, 'tecnico2') };
+    let error: unknown;
+    try {
+      registrarDecision(ticket, decision, agente, bd);
+    } catch (e) {
+      error = e;
+    }
+    expect(error).toBeInstanceOf(ErrorDecision);
+    expect((error as ErrorDecision).status).toBe(400);
+    expect((error as ErrorDecision).message).toBe('No se puede asignar un técnico sin grupo resolutor.');
+    expect(fila('SELECT fecha_decision FROM tickets WHERE id = ?', ticket)).toEqual({ fecha_decision: null });
+    expect(filas('SELECT * FROM correcciones WHERE ticket_id = ?', ticket)).toHaveLength(0);
+    expect(filas('SELECT * FROM historial WHERE ticket_id = ?', ticket)).toHaveLength(0);
+  });
+});
+
 describe('métricas: solo tickets con decisión confirmada', () => {
   it('CONDICION_DECISION_CONFIRMADA excluye tickets sin decisión', () => {
     const otro = crearTicket(bd);

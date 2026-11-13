@@ -87,6 +87,19 @@ describe('POST /api/tickets/:id/decision', () => {
     expect((await request(app).post('/api/tickets/1/decision').set('x-test-usuario', '2:agente').send({ ...valida, prioridad_final: 'Urgente' })).status).toBe(400);
   });
 
+  it('400 al asignar un técnico con grupo_final_id null', async () => {
+    const ticket = crearTicket(bd, { tecnico_id: idUsuario(bd, 'tecnico2') });
+    const decision = {
+      categoria_final_id: idCategoria(bd, 'Red'),
+      prioridad_final: 'Crítica',
+      grupo_final_id: null,
+      tecnico_id: idUsuario(bd, 'tecnico2'),
+    };
+    const r = await request(crearApp()).post(`/api/tickets/${ticket}/decision`).set('x-test-usuario', '2:agente').send(decision);
+    expect(r.status).toBe(400);
+    expect(r.body).toEqual({ message: 'No se puede asignar un técnico sin grupo resolutor.' });
+  });
+
   it('403 para técnico', async () => {
     const ticket = crearTicket(bd);
     const r = await request(crearApp()).post(`/api/tickets/${ticket}/decision`).set('x-test-usuario', '3:tecnico').send({});
