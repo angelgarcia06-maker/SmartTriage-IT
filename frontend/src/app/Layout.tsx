@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BrainCircuit, Home, LogOut, ShieldCheck, Users } from 'lucide-react';
+import { BookOpen, BrainCircuit, ChartColumn, Home, LogOut, Settings2, ShieldCheck, Users } from 'lucide-react';
 import { useAuth } from '../modules/auth/useAuth';
 
 const ETIQUETA_ROL: Record<string, string> = {
@@ -49,9 +49,20 @@ export default function Layout() {
               </NavLink>
             )}
             {usuario?.rol === 'administrador' && (
-              <NavLink to="/usuarios" className={claseNav}>
-                <Users size={18} /> Gestión de usuarios
-              </NavLink>
+              <>
+                <NavLink to="/usuarios" className={claseNav}>
+                  <Users size={18} /> Gestión de usuarios
+                </NavLink>
+                <NavLink to="/admin/dashboard" className={claseNav}>
+                  <ChartColumn size={18} /> Dashboard
+                </NavLink>
+                <NavLink to="/admin/catalogos" className={claseNav}>
+                  <Settings2 size={18} /> Catálogos
+                </NavLink>
+                <NavLink to="/admin/diccionario" className={claseNav}>
+                  <BookOpen size={18} /> Diccionario
+                </NavLink>
+              </>
             )}
           </nav>
 

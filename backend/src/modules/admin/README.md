@@ -55,14 +55,12 @@ Frontend:
 - GET grupos: HTTP 200, cuatro grupos.
 - Consultas verificadas con SQLite real.
 
-### Integración pendiente
+### Integración
 
-- Registrar catalogosRouter en backend/src/app.ts.
-- Incorporar CatalogosPanel a la aplicación React.
-- Verificar las peticiones desde el navegador.
-
-La integración de archivos compartidos corresponde
-al integrante encargado de integración.
+Las consultas de catálogos requieren sesión AUTH y están disponibles para
+cualquier usuario autenticado que necesite cargar los datos. El CRUD requiere
+rol administrador y protección CSRF. El panel está montado en
+`/admin/catalogos`.
 
 ---
 
@@ -92,16 +90,9 @@ Categorías:
 
 ### Seguridad
 
-Las operaciones administrativas están preparadas
-para utilizar middlewares de autenticación y
-autorización.
-
-Por defecto, se rechazan las modificaciones
-si la seguridad no está configurada.
-
-Las pruebas utilizan middlewares simulados.
-La conexión con AUTH-03 está pendiente
-de coordinación con el integrador.
+Las operaciones administrativas están conectadas a `loginRequired` y
+`roleRequired('administrador')`. Las escrituras también pasan por
+`csrfProtection`; sin configurar esos middlewares, el router falla cerrado.
 
 ### Frontend
 
@@ -119,14 +110,8 @@ Se amplió CatalogosPanel.tsx con:
 - Compilación del frontend correcta.
 - Compilación del backend correcta.
 
-### Integración pendiente
-
-- Conectar el middleware real de administrador.
-- Montar las rutas CRUD en la aplicación Express.
-- Integrar CatalogosPanel en la interfaz principal.
-- Comprobar el funcionamiento en el navegador.
-
-No se realizaron modificaciones a la rama main.
+El panel original está montado en `/admin/catalogos`; el menú y la ruta están
+restringidos a administradores.
 
 ---
 
@@ -177,16 +162,10 @@ Frontend:
 - Verificados duplicados, permisos simulados,
   edición, eliminación y actualización de clasificación.
 
-### Integración pendiente
-
-- Conectar los middlewares reales de autenticación.
-- Montar las rutas administrativas en Express.
-- Incorporar DiccionarioPanel en la interfaz principal.
-- Realizar pruebas visuales y capturas antes/después.
-
-La integración corresponde al integrante responsable.
-El trabajo se desarrolla en feature/panel-admin.
-No se realizan fusiones a main.
+El router está montado bajo `/api/admin` y exige sesión y rol administrador.
+El clasificador existente consulta las palabras en SQLite en cada llamada, por
+lo que los cambios del diccionario se reflejan sin reiniciar el servidor. El
+panel original está disponible en `/admin/diccionario`.
 
 ---
 
@@ -249,13 +228,13 @@ Frontend:
 - Verificados accesos HTTP 200, 401 y 403
   mediante middlewares simulados.
 
-### Integración pendiente
+El endpoint `GET /api/admin/metricas` y el panel original `/admin/dashboard`
+requieren rol administrador. Los conteos consultan SQLite y la precisión
+considera únicamente decisiones confirmadas.
 
-- Conectar el middleware real de administrador.
-- Montar la ruta GET /api/admin/metricas.
-- Incorporar DashboardPanel a la aplicación React.
-- Realizar pruebas visuales y capturas del Dashboard.
+## Integración y validación
 
-El trabajo se realiza en feature/panel-admin.
-La integración corresponde al responsable del equipo.
-No se realizan fusiones a main.
+`backend/src/app.ts` monta una sola vez cada router ADM, con sesión AUTH
+compartida y protección CSRF para las rutas de escritura. Las pruebas reales de
+integración con AUTH están en `admin.integration.test.ts`; Vitest ejecuta cada
+archivo con `DB_FILE=':memory:'`, sin modificar la base de trabajo.

@@ -6,6 +6,9 @@ import { useAuth } from '../modules/auth/useAuth';
 import Layout from './Layout';
 import InicioPage from './InicioPage';
 import TriajePage from '../modules/triaje/TriajePage';
+import { CatalogosPanel } from '../modules/admin/CatalogosPanel';
+import { DiccionarioPanel } from '../modules/admin/DiccionarioPanel';
+import { DashboardPanel } from '../modules/admin/DashboardPanel';
 
 /** /login: si ya hay sesión, redirige al inicio; si no, muestra el formulario. */
 function RutaLogin() {
@@ -42,6 +45,30 @@ export function App() {
           element={
             <RutaProtegida roles={['administrador']}>
               <UsuariosPage />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="admin/dashboard"
+          element={
+            <RutaProtegida roles={['administrador']}>
+              <DashboardPanel />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="admin/catalogos"
+          element={
+            <RutaProtegida roles={['administrador']}>
+              <CatalogosPanel />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="admin/diccionario"
+          element={
+            <RutaProtegida roles={['administrador']}>
+              <DiccionarioPanel />
             </RutaProtegida>
           }
         />
