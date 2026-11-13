@@ -87,8 +87,8 @@ export default function UsuariosPage() {
   const nombreGrupo = (id: number | null) => grupos.find((g) => g.id === id)?.nombre ?? (id ? `#${id}` : '—');
 
   return (
-    <div className="container py-4">
-      <h1 className="h4 mb-3">Administración de usuarios</h1>
+    <div className="page-section">
+      <p className="page-description">Crea y administra las cuentas, roles y grupos de soporte.</p>
       {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
       {aviso && <div className="alert alert-success py-2" role="status">{aviso}</div>}
 
@@ -156,7 +156,7 @@ export default function UsuariosPage() {
       </form>
 
       {cargando ? (
-        <p>Cargando...</p>
+        <p role="status">Cargando usuarios…</p>
       ) : (
         <div className="table-responsive">
           <table className="table table-sm align-middle">

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { ShieldCheck } from 'lucide-react';
 import { useAuth } from './useAuth';
 
 export default function LoginPage() {
@@ -26,39 +27,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container py-5" style={{ maxWidth: 420 }}>
-      <h1 className="h3 mb-4 text-center">SmartTriage IT</h1>
-      <form onSubmit={enviar} noValidate className="card card-body shadow-sm">
-        <h2 className="h5 mb-3">Iniciar sesión</h2>
+    <div className="auth-shell">
+      <main className="auth-panel">
+        <div className="auth-brand">
+          <span className="auth-brand-mark" aria-hidden="true"><ShieldCheck size={25} /></span>
+          <span>SmartTriage IT</span>
+        </div>
+        <h1>Iniciar sesión</h1>
+        <p className="auth-subtitle">Accede a tu espacio de gestión de servicios TI.</p>
+        <form onSubmit={enviar} noValidate>
+          <div className="mb-3">
+            <label htmlFor="usuario" className="form-label">Usuario</label>
+            <input
+              id="usuario"
+              className="form-control"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              autoComplete="username"
+              disabled={enviando}
+              autoFocus
+            />
+          </div>
 
-        <label htmlFor="usuario" className="form-label">Usuario</label>
-        <input
-          id="usuario"
-          className="form-control mb-3"
-          value={usuario}
-          onChange={(e) => setUsuario(e.target.value)}
-          autoComplete="username"
-          disabled={enviando}
-          autoFocus
-        />
+          <div className="mb-3">
+            <label htmlFor="password" className="form-label">Contraseña</label>
+            <input
+              id="password"
+              type="password"
+              className="form-control"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              disabled={enviando}
+            />
+          </div>
 
-        <label htmlFor="password" className="form-label">Contraseña</label>
-        <input
-          id="password"
-          type="password"
-          className="form-control mb-3"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          disabled={enviando}
-        />
+          {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
 
-        {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
-
-        <button type="submit" className="btn btn-primary" disabled={enviando}>
-          {enviando ? 'Ingresando...' : 'Ingresar'}
-        </button>
-      </form>
+          <button type="submit" className="btn btn-primary" disabled={enviando}>
+            {enviando ? 'Ingresando…' : 'Ingresar'}
+          </button>
+        </form>
+      </main>
     </div>
   );
 }

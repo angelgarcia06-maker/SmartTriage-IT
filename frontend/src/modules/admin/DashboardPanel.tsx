@@ -185,7 +185,7 @@ export function DashboardPanel() {
 
   if (cargando) {
     return (
-      <div className="container py-4" role="status">
+      <div className="page-section" role="status">
         Cargando métricas del Dashboard...
       </div>
     );
@@ -193,9 +193,8 @@ export function DashboardPanel() {
 
   if (error || !metricas) {
     return (
-      <section className="container py-4">
-        <h2>Dashboard administrativo</h2>
-
+      <section className="page-section">
+        <p className="page-description">Indicadores basados en tickets y decisiones confirmadas.</p>
         <div className="alert alert-danger" role="alert">
           {error || 'No hay métricas disponibles'}
         </div>
@@ -236,12 +235,11 @@ export function DashboardPanel() {
     }));
 
   return (
-    <section className="container py-4">
+    <section className="page-section">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2>Dashboard administrativo</h2>
-          <p className="text-muted mb-0">
-            Estadísticas y precisión de SmartTriage-IT
+          <p className="page-description mb-0">
+            Indicadores basados en tickets y decisiones confirmadas.
           </p>
         </div>
 

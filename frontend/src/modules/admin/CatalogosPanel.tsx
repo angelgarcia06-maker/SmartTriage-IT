@@ -165,9 +165,8 @@ export function CatalogosPanel() {
   }
 
   return (
-    <section className="container py-4">
-      <h2>Administración de catálogos</h2>
-      <p className="text-muted">
+    <section className="page-section">
+      <p className="page-description">
         Gestión de categorías y grupos de soporte técnico.
       </p>
 
@@ -183,7 +182,7 @@ export function CatalogosPanel() {
         </div>
       )}
 
-      {cargando && <p>Cargando catálogos...</p>}
+      {cargando && <p role="status">Cargando catálogos…</p>}
 
       {!cargando && (
         <>

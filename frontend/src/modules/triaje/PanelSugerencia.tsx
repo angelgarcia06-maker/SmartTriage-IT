@@ -93,20 +93,22 @@ export function PanelSugerencia({ ticketId, sugerencia, catalogos, onDecision, e
           : <>Clasificado como <strong>{sugerencia.categoria}</strong> por la palabra «{sugerencia.palabra_activadora}».</>}
       </p>
 
-      <table className="table table-sm align-middle mb-3">
-        <thead>
-          <tr><th scope="col">Campo</th><th scope="col">Sugerencia original</th><th scope="col">Decisión final</th></tr>
-        </thead>
-        <tbody>
-          {filas.map((f) => (
-            <tr key={f.campo} className={f.sugerido !== f.final ? 'table-warning' : undefined}>
-              <th scope="row" className="fw-normal">{f.campo}</th>
-              <td>{f.sugerido}</td>
-              <td>{f.final}{f.sugerido !== f.final && <span className="badge text-bg-warning ms-2">corregido</span>}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="table-responsive mb-3">
+        <table className="table table-sm align-middle mb-0">
+          <thead>
+            <tr><th scope="col">Campo</th><th scope="col">Sugerencia original</th><th scope="col">Decisión final</th></tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.campo} className={f.sugerido !== f.final ? 'table-warning' : undefined}>
+                <th scope="row" className="fw-normal">{f.campo}</th>
+                <td>{f.sugerido}</td>
+                <td>{f.final}{f.sugerido !== f.final && <span className="badge text-bg-warning ms-2">corregido</span>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {resultado ? (
         <div className="alert alert-success small mb-0" role="status">
