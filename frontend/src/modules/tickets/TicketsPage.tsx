@@ -13,6 +13,8 @@ import {
   type TicketResumen,
 } from './api';
 import { useAuth } from '../auth/useAuth';
+import { obtenerCatalogos, obtenerDecisionTicket } from '../triaje/api';
+import { PanelSugerencia, type CatalogosTriaje } from '../triaje/PanelSugerencia';
 
 type Vista = { tipo: 'lista' } | { tipo: 'nuevo' } | { tipo: 'detalle'; id: number };
 type CamposFiltro = { busqueda: string; estado: string; categoria_id: string; prioridad: string; tecnico_id: string };
@@ -281,6 +283,8 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
   const { usuario } = useAuth();
   const [ticket, setTicket] = useState<TicketDetalle | null>(null);
   const [historial, setHistorial] = useState<EventoHistorial[]>([]);
+  const [decision, setDecision] = useState<Awaited<ReturnType<typeof obtenerDecisionTicket>> | null>(null);
+  const [catalogos, setCatalogos] = useState<CatalogosTriaje | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [errorEstado, setErrorEstado] = useState('');
@@ -292,14 +296,20 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
     let vigente = true;
     setCargando(true);
     setError('');
-    Promise.all([obtenerTicket(id), obtenerHistorial(id)])
-      .then(([resultado, eventos]) => {
+    Promise.allSettled([obtenerTicket(id), obtenerHistorial(id), obtenerDecisionTicket(id), obtenerCatalogos()])
+      .then((resultados) => {
         if (!vigente) return;
-        setTicket(resultado);
-        setHistorial(eventos);
-      })
-      .catch((err: unknown) => {
-        if (vigente) setError(err instanceof Error ? err.message : 'No se pudo cargar el ticket.');
+        const ticketResultado = resultados[0];
+        const historialResultado = resultados[1];
+        const decisionResultado = resultados[2];
+        const catalogosResultado = resultados[3];
+
+        if (ticketResultado.status === 'fulfilled') setTicket(ticketResultado.value);
+        else setError(ticketResultado.reason instanceof Error ? ticketResultado.reason.message : 'No se pudo cargar el ticket.');
+
+        if (historialResultado.status === 'fulfilled') setHistorial(historialResultado.value);
+        if (decisionResultado.status === 'fulfilled') setDecision(decisionResultado.value);
+        if (catalogosResultado.status === 'fulfilled') setCatalogos(catalogosResultado.value);
       })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
@@ -354,6 +364,31 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
               <dt className="col-sm-3">Descripción</dt><dd className="col-sm-9" style={{ whiteSpace: 'pre-wrap' }}>{ticket.descripcion}</dd>
             </dl>
           </div>
+          {decision && catalogos && decision.pendiente && (usuario?.rol === 'agente' || usuario?.rol === 'administrador' || (usuario?.rol === 'tecnico' && ticket.tecnico_id === usuario.id)) && (
+            <div className="mt-3">
+              <PanelSugerencia
+                ticketId={ticket.id}
+                sugerencia={decision.sugerencia}
+                catalogos={catalogos}
+                onDecision={() => setRevision((actual) => actual + 1)}
+              />
+            </div>
+          )}
+          {decision && !decision.pendiente && decision.decision && (
+            <section className="feature-card mt-3" aria-labelledby="decision-ticket-titulo">
+              <h3 id="decision-ticket-titulo" className="h6">Decisión confirmada</h3>
+              <p className="mb-2">
+                {decision.aceptada_sin_correccion ? 'Sugerencia aceptada sin cambios.' : 'Sugerencia corregida por el agente.'}
+              </p>
+              <dl className="row mb-0 small">
+                <dt className="col-sm-3">Categoría final</dt><dd className="col-sm-9">{catalogos ? catalogos.categorias.find((c) => c.id === decision.decision?.categoria_final_id)?.nombre ?? 'Sin asignar' : decision.decision?.categoria_final_id}</dd>
+                <dt className="col-sm-3">Prioridad final</dt><dd className="col-sm-9">{decision.decision?.prioridad_final ?? 'Sin asignar'}</dd>
+                <dt className="col-sm-3">Grupo final</dt><dd className="col-sm-9">{catalogos ? catalogos.grupos.find((g) => g.id === decision.decision?.grupo_final_id)?.nombre ?? 'Sin asignar' : decision.decision?.grupo_final_id ?? 'Sin asignar'}</dd>
+                <dt className="col-sm-3">Técnico final</dt><dd className="col-sm-9">{catalogos ? catalogos.tecnicos.find((t) => t.id === decision.decision?.tecnico_id)?.nombre ?? 'Sin asignar' : decision.decision?.tecnico_id ?? 'Sin asignar'}</dd>
+                <dt className="col-sm-3">Fecha</dt><dd className="col-sm-9">{decision.fecha_decision ? fechaLegible(decision.fecha_decision) : '—'}</dd>
+              </dl>
+            </section>
+          )}
           <section className="feature-card mt-3" aria-labelledby="estado-ticket-titulo">
             <h3 id="estado-ticket-titulo" className="h6">Estado del ticket</h3>
             {siguiente && puedeCambiarEstado && (

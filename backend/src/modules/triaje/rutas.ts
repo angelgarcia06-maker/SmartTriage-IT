@@ -4,8 +4,9 @@ import { z } from 'zod';
 import { db as conexionPredeterminada } from '../../db/connection';
 import { roleRequired, usuarioDeRequest } from '../auth/auth.middleware';
 import type { RolAuth } from '../auth/auth.types';
-import { ErrorDecision, registrarDecision } from './decision';
+import { ErrorDecision, obtenerDetalleDecision, registrarDecision } from './decision';
 import { sugerir } from './sugerir';
+import { obtenerTicket } from '../tickets/tickets.service';
 
 const esquemaSugerir = z.object({
   titulo: z.string().trim().max(200).optional(),
@@ -62,6 +63,30 @@ export function crearRutasTriaje(opciones: OpcionesRutasTriaje = {}): Router {
     }
     const { titulo, descripcion, impacto, urgencia } = datos.data;
     res.json(sugerir({ titulo, descripcion, impacto, urgencia }, bd()));
+  });
+
+  router.get('/tickets/:id/decision', requiereRol('agente', 'administrador', 'tecnico'), (req, res) => {
+    const ticketId = Number(req.params.id);
+    if (!Number.isInteger(ticketId) || ticketId <= 0) {
+      res.status(400).json({ message: 'Id de ticket inválido.' });
+      return;
+    }
+    const usuario = usuarioDeRequest(req);
+    if (!usuario) {
+      res.status(401).json({ message: 'Inicia sesión para continuar.' });
+      return;
+    }
+    const ticket = obtenerTicket(ticketId, bd(), usuario.rol === 'tecnico' ? usuario.id : undefined);
+    if (!ticket) {
+      res.status(404).json({ message: 'Ticket no encontrado.' });
+      return;
+    }
+    const detalle = obtenerDetalleDecision(ticketId, bd());
+    if (!detalle) {
+      res.status(404).json({ message: 'Ticket no encontrado.' });
+      return;
+    }
+    res.json(detalle);
   });
 
   router.post('/tickets/:id/decision', requiereRol('agente', 'administrador'), (req, res) => {

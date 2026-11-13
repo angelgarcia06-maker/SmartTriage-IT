@@ -83,6 +83,51 @@ describe('POST /api/triaje/sugerir', () => {
   });
 });
 
+describe('GET /api/tickets/:id/decision', () => {
+  it('devuelve la sugerencia original y marca una decisión pendiente', async () => {
+    const ticket = crearTicket(bd, { tecnico_id: idUsuario(bd, 'tecnico2') });
+    const agente = await sesion('agente');
+    const r = await agente.get(`/api/tickets/${ticket}/decision`);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({
+      ticket_id: ticket,
+      pendiente: true,
+      sugerencia: {
+        categoria_id: idCategoria(bd, 'Red'),
+        categoria: 'Red',
+        prioridad: 'Crítica',
+        grupo_id: idGrupo(bd, 'Redes y conectividad'),
+        tecnico_id: idUsuario(bd, 'tecnico2'),
+      },
+    });
+  });
+
+  it('devuelve la decisión final cuando ya está confirmada', async () => {
+    const ticket = crearTicket(bd, { tecnico_id: idUsuario(bd, 'tecnico2') });
+    const agente = await sesion('agente');
+    const decision = {
+      categoria_final_id: idCategoria(bd, 'Red'),
+      prioridad_final: 'Crítica',
+      grupo_final_id: idGrupo(bd, 'Redes y conectividad'),
+      tecnico_id: idUsuario(bd, 'tecnico2'),
+    };
+    await agente.post(`/api/tickets/${ticket}/decision`).send(decision);
+    const r = await agente.get(`/api/tickets/${ticket}/decision`);
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({
+      ticket_id: ticket,
+      pendiente: false,
+      aceptada_sin_correccion: true,
+      decision: {
+        categoria_final_id: decision.categoria_final_id,
+        prioridad_final: decision.prioridad_final,
+        grupo_final_id: decision.grupo_final_id,
+        tecnico_id: decision.tecnico_id,
+      },
+    });
+  });
+});
+
 describe('POST /api/tickets/:id/decision', () => {
   it('201 al aceptar y 409 al repetir', async () => {
     const ticket = crearTicket(bd, { tecnico_id: idUsuario(bd, 'tecnico2') });

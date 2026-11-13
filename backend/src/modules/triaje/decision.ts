@@ -16,6 +16,25 @@ export interface ResultadoDecision {
   fecha_decision: string;
 }
 
+export interface SugerenciaPersistida {
+  categoria_id: number | null;
+  categoria: string | null;
+  palabra_activadora: string | null;
+  es_otros: boolean;
+  prioridad: Prioridad | null;
+  grupo_id: number | null;
+  tecnico_id: number | null;
+}
+
+export interface DecisionTicketDetalle {
+  ticket_id: number;
+  pendiente: boolean;
+  sugerencia: SugerenciaPersistida;
+  decision: DecisionTriaje | null;
+  aceptada_sin_correccion: boolean | null;
+  fecha_decision: string | null;
+}
+
 export type CampoCorregible = 'categoria' | 'prioridad' | 'grupo' | 'tecnico';
 
 /** Error con código HTTP, para que la ruta responda 400/404/409 sin adivinar. */
@@ -79,6 +98,74 @@ function validarDecision(conexion: Database.Database, d: DecisionTriaje): void {
  * Nota: la tabla no tiene `tecnico_sugerido_id`; se toma `tickets.tecnico_id`
  * guardado al crear el ticket (TICK-01) como técnico sugerido.
  */
+export function obtenerDetalleDecision(
+  ticketId: number,
+  conexion: Database.Database = (require('../../db/connection') as typeof import('../../db/connection')).db,
+): DecisionTicketDetalle | undefined {
+  const fila = conexion
+    .prepare(
+      `SELECT t.id AS ticket_id,
+              t.categoria_sugerida_id,
+              c.nombre AS categoria_sugerida,
+              t.palabra_activadora,
+              t.prioridad_sugerida,
+              t.grupo_sugerido_id,
+              t.tecnico_id,
+              t.categoria_final_id,
+              t.prioridad_final,
+              t.grupo_final_id,
+              t.aceptada_sin_correccion,
+              t.fecha_decision
+         FROM tickets t
+         LEFT JOIN categorias c ON c.id = t.categoria_sugerida_id
+         WHERE t.id = ?`,
+    )
+    .get(ticketId) as {
+      ticket_id: number;
+      categoria_sugerida_id: number | null;
+      categoria_sugerida: string | null;
+      palabra_activadora: string | null;
+      prioridad_sugerida: Prioridad | null;
+      grupo_sugerido_id: number | null;
+      tecnico_id: number | null;
+      categoria_final_id: number | null;
+      prioridad_final: Prioridad | null;
+      grupo_final_id: number | null;
+      aceptada_sin_correccion: number | null;
+      fecha_decision: string | null;
+    } | undefined;
+
+  if (!fila) return undefined;
+
+  const sugerencia: SugerenciaPersistida = {
+    categoria_id: fila.categoria_sugerida_id,
+    categoria: fila.categoria_sugerida,
+    palabra_activadora: fila.palabra_activadora,
+    es_otros: fila.palabra_activadora == null,
+    prioridad: fila.prioridad_sugerida,
+    grupo_id: fila.grupo_sugerido_id,
+    tecnico_id: fila.tecnico_id,
+  };
+
+  const decision: DecisionTriaje | null = fila.fecha_decision == null
+    ? null
+    : {
+        categoria_final_id: fila.categoria_final_id ?? fila.categoria_sugerida_id ?? 0,
+        prioridad_final: fila.prioridad_final ?? fila.prioridad_sugerida ?? 'Media',
+        grupo_final_id: fila.grupo_final_id ?? fila.grupo_sugerido_id ?? null,
+        tecnico_id: fila.tecnico_id ?? null,
+      };
+
+  return {
+    ticket_id: fila.ticket_id,
+    pendiente: fila.fecha_decision == null,
+    sugerencia,
+    decision,
+    aceptada_sin_correccion: fila.aceptada_sin_correccion == null ? null : Boolean(fila.aceptada_sin_correccion),
+    fecha_decision: fila.fecha_decision,
+  };
+}
+
 export function registrarDecision(
   ticketId: number,
   decision: DecisionTriaje,
