@@ -336,3 +336,58 @@ describe('PATCH /api/tickets/:id/estado y GET /api/tickets/:id/historial', () =>
     expect(conexion.prepare('SELECT COUNT(*) AS total FROM historial WHERE ticket_id = ?').get(ticketId)).toEqual({ total: 0 });
   });
 });
+
+describe('flujo completo de alta, consulta, atención y cierre', () => {
+  it('conserva datos y registra el historial desde la creación hasta el cierre terminal', async () => {
+    const app = express();
+    app.use(express.json());
+    app.use('/api/tickets', crearRutasTickets({
+      conexion,
+      requiereAutenticacion: autenticarComo(usuarioSesion),
+      sugerir: () => ({
+        categoria_id: 3,
+        prioridad: 'Crítica',
+        grupo_id: 2,
+        tecnico_id: 9,
+        palabra_activadora: 'wifi',
+      }),
+    }));
+    const tecnico = express();
+    tecnico.use(express.json());
+    tecnico.use('/api/tickets', crearRutasTickets({
+      conexion,
+      requiereAutenticacion: autenticarComo({ id: 9, rol: 'tecnico' }),
+    }));
+
+    const alta = await request(app).post('/api/tickets').send(cuerpo);
+    const ticketId = alta.body.id as number;
+    const lista = await request(app).get('/api/tickets').query({
+      busqueda: String(ticketId),
+      estado: 'Nuevo',
+      categoria_id: '3',
+      prioridad: 'Crítica',
+      tecnico_id: '9',
+    });
+    const detalleInicial = await request(app).get(`/api/tickets/${ticketId}`);
+    const asignado = await request(app).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
+    const enProceso = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
+    const resuelto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const cerrado = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Cerrado' });
+    const transicionDesdeCerrado = await request(app)
+      .patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
+    const historial = await request(app).get(`/api/tickets/${ticketId}/historial`);
+    const detalleFinal = await request(app).get(`/api/tickets/${ticketId}`);
+
+    expect(alta.status).toBe(201);
+    expect(lista.status).toBe(200);
+    expect(lista.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([ticketId]);
+    expect(detalleInicial.body).toMatchObject({ id: ticketId, estado: 'Nuevo', titulo: cuerpo.titulo });
+    expect([asignado.status, enProceso.status, resuelto.status, cerrado.status]).toEqual([200, 200, 200, 200]);
+    expect(transicionDesdeCerrado.status).toBe(409);
+    expect(detalleFinal.body.estado).toBe('Cerrado');
+    expect(historial.body.historial.map((evento: { valor_nuevo: string }) => evento.valor_nuevo)).toEqual([
+      'Asignado', 'En proceso', 'Resuelto', 'Cerrado',
+    ]);
+    expect(historial.body.historial).toHaveLength(4);
+  });
+});

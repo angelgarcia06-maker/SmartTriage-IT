@@ -30,3 +30,9 @@ El integrador debe montar este router en `/api/tickets` junto con los middleware
 - Agentes y administradores pueden cambiar estados; técnicos solo pueden hacerlo en tickets asignados a su usuario.
 - El cambio y el evento de historial se guardan en la misma transacción; las transiciones inválidas responden 409.
 - `GET /api/tickets/:id/historial` devuelve los eventos de forma cronológica y respeta los mismos permisos de visibilidad.
+
+## TICK-05: pruebas y cierre
+
+- `Cerrado` es un estado terminal; cualquier transición posterior se rechaza con 409 y no agrega eventos al historial.
+- `tickets.routes.test.ts` cubre el flujo de alta, consulta, filtros, cambios de estado, cierre y cronología con SQLite en memoria.
+- También verifica que un fallo al insertar el historial revierte el cambio de estado.

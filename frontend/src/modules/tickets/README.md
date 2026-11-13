@@ -20,3 +20,7 @@
 
 - El detalle permite avanzar por las transiciones válidas y reabrir un ticket resuelto con motivo.
 - La cronología muestra acción, autor, fecha y estados anterior/nuevo sin editar eventos existentes.
+
+## TICK-05: cierre
+
+- El detalle informa que `Cerrado` es terminal y no presenta acciones de cambio de estado posteriores.

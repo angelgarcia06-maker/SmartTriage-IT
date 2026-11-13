@@ -306,7 +306,7 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
         setErrorEstado(err instanceof Error ? err.message : 'No se pudo actualizar el estado.');
       } finally {
         setActualizandoEstado(false);
-      }
+    }
     }
 
     function enviarReapertura(evento: FormEvent<HTMLFormElement>) {
@@ -350,6 +350,7 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
                 {actualizandoEstado ? 'Actualizando…' : siguiente.etiqueta}
               </button>
             )}
+            {ticket.estado === 'Cerrado' && <p className="mb-0">Ticket cerrado. No admite más cambios de estado.</p>}
             {ticket.estado === 'Resuelto' && (
               <form className="mt-3" onSubmit={enviarReapertura}>
                 <label htmlFor="motivo-reapertura" className="form-label">Motivo de reapertura</label>
