@@ -4,15 +4,19 @@ import request from 'supertest';
 import { db } from '../../db/connection';
 import { authRouter } from './auth.routes';
 import { usuariosRouter } from './usuarios.routes';
+import { sessionMiddleware } from './session';
 
 const app = express();
 app.use(express.json());
+app.use(sessionMiddleware);
 app.use('/api/auth', authRouter);
 app.use('/api/usuarios', usuariosRouter);
 
 const CLAVE = 'Cambiar123!';
 type Agente = ReturnType<typeof request.agent>;
 
+// Base en memoria (ver src/test/setup.ts): los usuarios zz_test_* viven solo
+// durante la prueba y nunca llegan a data/smarttriage.db.
 const limpiar = () => db.prepare("DELETE FROM usuarios WHERE usuario LIKE 'zz_test_%'").run();
 let contador = 0;
 const nuevoNombre = () => `zz_test_${Date.now().toString(36)}_${contador++}`;

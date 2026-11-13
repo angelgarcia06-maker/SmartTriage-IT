@@ -1,8 +1,17 @@
+
 import { Router, type RequestHandler } from 'express';
-import { getUsuarioPorId, getUsuarioPorNombre, login, logout, me } from './auth.controller';
+import {
+  getUsuarioPorId,
+  getUsuarioPorNombre,
+  login,
+  logout,
+  me,
+} from './auth.controller';
 import { loginRequired, roleRequired } from './auth.middleware';
-import { sessionMiddleware } from './session';
-import { csrfProtection, obtenerTokenCsrf } from './csrf';
+import {
+  csrfTokenProtection,
+  obtenerTokenCsrf,
+} from './csrf';
 
 /**
  * Middlewares que se inyectan al montar el router de consulta de usuarios.
@@ -10,7 +19,7 @@ import { csrfProtection, obtenerTokenCsrf } from './csrf';
 export interface OpcionesAuthRouter {
   /** AUTH-02: middleware de sesión (`loginRequired`). */
   requiereAutenticacion?: RequestHandler;
-  /** AUTH-03: middleware de autorización ya configurado con los roles permitidos. */
+  /** AUTH-03: middleware de autorización configurado con los roles permitidos. */
   requiereAutorizacion?: RequestHandler;
 }
 
@@ -20,44 +29,47 @@ const denegarSinAutenticacion: RequestHandler = (_req, res) => {
 };
 
 /**
- * Crea el router de auth.
- * - /login, /logout y /me (AUTH-02) siempre disponibles, con sesión en SQLite.
- * - /usuarios/... (AUTH-01) solo se habilitan si se inyectan AMBOS middlewares;
- *   si no, responden 401 (nunca quedan públicas).
+ * Crea el router de autenticación.
+ * La sesión se configura globalmente en app.ts antes de montar este router.
  */
 export function crearAuthRouter(opciones: OpcionesAuthRouter = {}): Router {
   const router = Router();
 
-  // La sesión vive dentro del módulo, antes de cualquier middleware que la use.
-  router.use(sessionMiddleware);
+  // Obtención del token CSRF asociado a la sesión actual.
+  router.get('/csrf', obtenerTokenCsrf);
 
-  // Token CSRF para iniciar y mantener la sesión.
-router.get('/csrf', obtenerTokenCsrf);
+  // Operaciones de autenticación protegidas mediante token CSRF.
+  router.post('/login', csrfTokenProtection, login);
+  router.post('/logout', csrfTokenProtection, logout);
 
-// Operaciones protegidas mediante token CSRF.
-router.post('/login', csrfProtection, login);
-router.post('/logout', csrfProtection, logout);
-
-router.get('/me', me);
+  router.get('/me', me);
 
   const proteger: RequestHandler[] =
     opciones.requiereAutenticacion && opciones.requiereAutorizacion
-      ? [opciones.requiereAutenticacion, opciones.requiereAutorizacion]
+      ? [
+          opciones.requiereAutenticacion,
+          opciones.requiereAutorizacion,
+        ]
       : [denegarSinAutenticacion];
 
-  // La ruta con prefijo fijo va antes de /usuarios/:id para que no la capture.
-  router.get('/usuarios/por-usuario/:usuario', ...proteger, getUsuarioPorNombre);
+  // La ruta con prefijo fijo va antes de /usuarios/:id.
+  router.get(
+    '/usuarios/por-usuario/:usuario',
+    ...proteger,
+    getUsuarioPorNombre,
+  );
+
   router.get('/usuarios/:id', ...proteger, getUsuarioPorId);
+
   return router;
 }
 
-/** Router por defecto: login/logout/me activos; /usuarios falla cerrado (401). */
+/** Router por defecto: consultas de usuarios protegidas mediante fail-closed. */
 export const authRouter = crearAuthRouter();
 
 /**
- * Router listo para montar en app.ts:
- *   app.use('/api/auth', authRouterCompleto);
- * /usuarios/... exige sesión y rol administrador.
+ * Router completo para montar en app.ts.
+ * Requiere que sessionMiddleware se monte antes de este router.
  */
 export const authRouterCompleto = crearAuthRouter({
   requiereAutenticacion: loginRequired,

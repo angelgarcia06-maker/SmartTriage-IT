@@ -1,0 +1,67 @@
+RUN v3.2.7 SmartTriage-IT/backend
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Alto + Urgencia Alta = Crítica 3ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Alto + Urgencia Media = Alta 1ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Alto + Urgencia Baja = Media 0ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Medio + Urgencia Alta = Alta 0ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Medio + Urgencia Media = Media 0ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Medio + Urgencia Baja = Baja 0ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Bajo + Urgencia Alta = Media 0ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Bajo + Urgencia Media = Baja 0ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — los nueve pares de la matriz > Impacto Bajo + Urgencia Baja = Baja 0ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — validación > rechaza impacto inválido 4ms
+ ✓ src/modules/triaje/prioridad.test.ts > calcularPrioridad — validación > rechaza urgencia inválida (distingue mayúsculas) 1ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — aceptar > guarda la decisión sin filas en correcciones 42ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — aceptar > añade una fila al historial 6ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — corregir > guarda una fila por campo corregido con sugerido y final 10ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — corregir > solo registra los campos que cambiaron 5ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — corregir > conserva la sugerencia original en el ticket 6ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — corregir > quitar el técnico sugerido se registra como "ninguno" 6ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — no duplica > una segunda decisión devuelve 409 y no crea filas nuevas 10ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — validación (no deja datos a medias) > ticket inexistente 9ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — validación (no deja datos a medias) > categoría inexistente 6ms
+ ✓ src/modules/triaje/clasificador.test.ts > normalizarTexto > quita tildes, mayúsculas, signos y espacios repetidos 4ms
+ ✓ src/modules/triaje/clasificador.test.ts > normalizarTexto > detecta solo palabras o frases completas 1ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > frase con wifi → Red 13ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > teclado → Hardware 4ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > texto desconocido → Otros con es_otros=true y explicación 4ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > texto vacío → Otros 3ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > tildes y mayúsculas > sin tilde en el texto coincide con palabra con tilde 3ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > tildes y mayúsculas > mayúsculas y tildes extra en el texto 2ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > tildes y mayúsculas > frases de varias palabras con espacios y signos extra 3ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > límites de palabra > no coincide dentro de otra palabra 4ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > límites de palabra > coincide con signos alrededor 3ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > desempates deterministas > gana la frase más larga 4ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > desempates deterministas > a igual longitud gana la categoría con más coincidencias 3ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > desempates deterministas > empate total → categoría de menor id, siempre igual 4ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > desempates deterministas > dentro de una categoría la activadora es la frase más larga 3ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > diccionario configurable (sin hardcode) > una palabra nueva en SQLite cambia la clasificación 4ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > diccionario configurable (sin hardcode) > ignora categorías inactivas 3ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificar (lee el diccionario desde SQLite) > diccionario configurable (sin hardcode) > falla con mensaje claro si no existe la categoría Otros 5ms
+ ✓ src/modules/triaje/clasificador.test.ts > clasificarConDiccionario (función pura) > funciona con un fixture sin base de datos 1ms
+ ✓ src/modules/triaje/sugerir.test.ts > sugerir(ticket) > devuelve categoría, activadora, prioridad, grupo y técnico 17ms
+ ✓ src/modules/triaje/sugerir.test.ts > sugerir(ticket) > la estructura es exactamente SugerenciaTriaje (sin campos extra) 8ms
+ ✓ src/modules/triaje/sugerir.test.ts > sugerir(ticket) > también clasifica por el título 4ms
+ ✓ src/modules/triaje/sugerir.test.ts > sugerir(ticket) > la prioridad sale solo de la matriz, no de la categoría 6ms
+ ✓ src/modules/triaje/sugerir.test.ts > sugerir(ticket) > caso sin técnico: el grupo no tiene técnicos activos → tecnico_id null 5ms
+ ✓ src/modules/triaje/sugerir.test.ts > sugerir(ticket) > grupo inactivo → grupo_id y tecnico_id null 6ms
+ ✓ src/modules/triaje/sugerir.test.ts > recomendarTecnico(grupo) > elige al técnico con menos tickets abiertos 6ms
+ ✓ src/modules/triaje/sugerir.test.ts > recomendarTecnico(grupo) > no cuenta tickets Resueltos ni Cerrados 6ms
+ ✓ src/modules/triaje/sugerir.test.ts > recomendarTecnico(grupo) > empate de carga → menor id 4ms
+ ✓ src/modules/triaje/sugerir.test.ts > recomendarTecnico(grupo) > ignora técnicos de otros grupos y usuarios que no son técnicos 4ms
+ ✓ src/modules/triaje/sugerir.test.ts > recomendarTecnico(grupo) > grupo null → null 3ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — validación (no deja datos a medias) > grupo inexistente 6ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — validación (no deja datos a medias) > técnico que no es técnico 5ms
+ ✓ src/modules/triaje/decision.test.ts > registrarDecision — validación (no deja datos a medias) > técnico de otro grupo 4ms
+ ✓ src/modules/triaje/decision.test.ts > métricas: solo tickets con decisión confirmada > CONDICION_DECISION_CONFIRMADA excluye tickets sin decisión 4ms
+ ✓ src/health.test.ts > API Health > responde con estado 86ms
+ ✓ src/modules/triaje/rutas.test.ts > POST /api/triaje/sugerir > 401 sin sesión 126ms
+ ✓ src/modules/triaje/rutas.test.ts > POST /api/triaje/sugerir > 403 para técnico 16ms
+ ✓ src/modules/triaje/rutas.test.ts > POST /api/triaje/sugerir > 200 para agente con la sugerencia completa 21ms
+ ✓ src/modules/triaje/rutas.test.ts > POST /api/triaje/sugerir > 400 con impacto inválido o sin descripción 26ms
+ ✓ src/modules/triaje/rutas.test.ts > POST /api/tickets/:id/decision > 201 al aceptar y 409 al repetir 35ms
+ ✓ src/modules/triaje/rutas.test.ts > POST /api/tickets/:id/decision > 404 si el ticket no existe, 400 si la decisión es inválida 29ms
+ ✓ src/modules/triaje/rutas.test.ts > POST /api/tickets/:id/decision > 403 para técnico 17ms
+ Test Files  6 passed (6)
+      Tests  62 passed (62)
+   Start at  22:51:57
+   Duration  2.24s (transform 1.62s, setup 0ms, collect 3.49s, tests 642ms, environment 9ms, prepare 2.76s)

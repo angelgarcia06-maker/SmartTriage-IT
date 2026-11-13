@@ -5,15 +5,22 @@ import { SqliteSessionStore } from './sqlite-session-store';
 
 export const COOKIE_NAME = 'smarttriage.sid';
 
+/** Expiración de la sesión: 8 horas. */
+export const DURACION_SESION_MS = 8 * 60 * 60 * 1000;
+
 // El secreto debe provenir del entorno en producción.
 const configuredSecret = process.env.SESSION_SECRET?.trim();
 
 if (process.env.NODE_ENV === 'production' && !configuredSecret) {
-  throw new Error('[auth] SESSION_SECRET es obligatorio en producción');
+  throw new Error(
+    '[auth] SESSION_SECRET es obligatorio en producción. Define un secreto largo y aleatorio en el entorno.',
+  );
 }
 
 if (configuredSecret && configuredSecret.length < 32) {
-  throw new Error('[auth] SESSION_SECRET debe tener al menos 32 caracteres');
+  throw new Error(
+    '[auth] SESSION_SECRET debe tener al menos 32 caracteres',
+  );
 }
 
 // En desarrollo y pruebas se utiliza una clave aleatoria temporal,
@@ -37,6 +44,7 @@ export const sessionMiddleware = session({
     httpOnly: true,
     sameSite: 'lax',
     secure: 'auto',
-    maxAge: 8 * 60 * 60 * 1000,
+    maxAge: DURACION_SESION_MS,
+    path: '/',
   },
 });

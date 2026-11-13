@@ -10,8 +10,8 @@ const CLAVE = 'Cambiar123!';
 // Matriz de permisos de prueba (rutas simuladas, no son las de tickets).
 const app = express();
 app.use(express.json());
-app.use('/api/auth', authRouter);
 app.use(sessionMiddleware);
+app.use('/api/auth', authRouter);
 app.get('/api/_test/privada', loginRequired, (_req, res) => res.json({ ok: true }));
 app.get('/api/_test/admin', roleRequired('administrador'), (_req, res) => res.json({ ok: true }));
 app.get('/api/_test/tecnicos', roleRequired('tecnico', 'administrador'), (_req, res) => res.json({ ok: true }));
@@ -20,6 +20,7 @@ app.get('/api/_test/agentes', roleRequired('agente'), (_req, res) => res.json({ 
 // App con el router completo, para probar /usuarios con cada rol.
 const appCompleta = express();
 appCompleta.use(express.json());
+appCompleta.use(sessionMiddleware);
 appCompleta.use('/api/auth', authRouterCompleto);
 
 async function sesionDe(a: express.Express, usuario: string) {

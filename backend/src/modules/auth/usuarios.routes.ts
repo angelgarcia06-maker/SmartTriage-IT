@@ -1,21 +1,25 @@
-import { csrfProtection } from './csrf';
+
 import { Router } from 'express';
 import { loginRequired, roleRequired } from './auth.middleware';
-import { actualizar, crear, listar, listarGrupos } from './usuarios.controller';
-import { sessionMiddleware } from './session';
+import {
+  actualizar,
+  crear,
+  listar,
+  listarGrupos,
+} from './usuarios.controller';
+import { csrfTokenProtection } from './csrf';
 
 /**
- * Administración de usuarios (AUTH-04). Solo administrador.
- * Montar en app.ts: app.use('/api/usuarios', usuariosRouter)
- * No existe DELETE: se desactiva con PATCH { activo: false }.
+ * Administración de usuarios (AUTH-04).
+ * La sesión y la protección de origen se configuran globalmente en app.ts.
+ * Solo los administradores pueden gestionar usuarios.
  */
 export const usuariosRouter = Router();
 
-usuariosRouter.use(sessionMiddleware);
 usuariosRouter.use(loginRequired, roleRequired('administrador'));
-usuariosRouter.use(csrfProtection);
+usuariosRouter.use(csrfTokenProtection);
 
-usuariosRouter.get('/grupos', listarGrupos); // antes de /:id
+usuariosRouter.get('/grupos', listarGrupos);
 usuariosRouter.get('/', listar);
 usuariosRouter.post('/', crear);
 usuariosRouter.patch('/:id', actualizar);
