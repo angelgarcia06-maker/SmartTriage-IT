@@ -32,3 +32,64 @@ clasificar('No me conecta el wifi');
 | La cafetera hace ruido | Otros (`es_otros: true`) | — |
 
 Pruebas: `backend/src/modules/triaje/clasificador.test.ts` (`npm test`).
+
+## TRI-02 · Matriz de prioridad (`prioridad.ts`)
+
+`calcularPrioridad(impacto, urgencia)` es una función pura: solo usa impacto y urgencia (nunca la descripción ni la categoría). Valores inválidos lanzan error.
+
+| Impacto \ Urgencia | Alta | Media | Baja |
+|---|---|---|---|
+| **Alto** | Crítica | Alta | Media |
+| **Medio** | Alta | Media | Baja |
+| **Bajo** | Media | Baja | Baja |
+
+> Matriz ITIL 3×3. El issue solo fija "Alto/Alta = Crítica"; confirmar el resto con el equipo. Pruebas: `prioridad.test.ts` (9 combinaciones + validación).
+
+## TRI-03 · Sugerir grupo y técnico (`sugerir.ts`)
+
+`sugerir({titulo?, descripcion, impacto, urgencia})` devuelve exactamente `SugerenciaTriaje`:
+
+```ts
+{ categoria_id, categoria, palabra_activadora, es_otros, prioridad, grupo_id, tecnico_id }
+```
+
+- Categoría: `clasificar(titulo + descripcion)`.
+- Prioridad: `calcularPrioridad(impacto, urgencia)`.
+- Grupo: el de la categoría (`categorias.grupo_id`), solo si el grupo está activo; si no, `null`.
+- Técnico (`recomendarTecnico`): técnicos activos del grupo; gana el que tiene menos tickets en **Nuevo, Asignado o En proceso**; empate → menor id. Sin técnicos → `null` (no se inventa).
+
+## TRI-04 · Aceptar y corregir (`decision.ts`, frontend `PanelSugerencia.tsx`)
+
+`registrarDecision(ticketId, decision, usuarioId)` en una transacción:
+- guarda `categoria_final_id`, `prioridad_final`, `grupo_final_id`, `tecnico_id`, `aceptada_sin_correccion` y `fecha_decision`;
+- conserva los campos `*_sugerido*` originales;
+- inserta una fila en `correcciones` por campo cambiado (`categoria`, `prioridad`, `grupo`, `tecnico`) con valor sugerido y final (quitar un técnico/grupo se guarda como `ninguno`);
+- añade una fila a `historial` (nunca lo sobrescribe);
+- un segundo intento sobre el mismo ticket → error 409, sin filas nuevas.
+- Valida categoría activa, grupo activo y que el técnico sea técnico activo del grupo final (400).
+
+Supuesto: la tabla no tiene `tecnico_sugerido_id`, así que el técnico sugerido es el `tickets.tecnico_id` que guarda TICK-01 al crear el ticket.
+
+**Métricas (ADM-04):** usar `CONDICION_DECISION_CONFIRMADA` para excluir tickets sin decisión:
+```ts
+import { CONDICION_DECISION_CONFIRMADA } from '../triaje/decision';
+db.prepare(`SELECT ... FROM tickets WHERE ${CONDICION_DECISION_CONFIRMADA}`);
+```
+
+## Rutas (`rutas.ts`) — montar en `app.ts` (Integrante 5)
+
+```ts
+import { crearRutasTriaje } from './modules/triaje/rutas';
+app.use('/api', crearRutasTriaje({ requiereRol: roleRequired })); // roleRequired de AUTH-03
+```
+
+| Método y ruta | Roles | Respuestas |
+|---|---|---|
+| `POST /api/triaje/sugerir` | agente, administrador | 200 `SugerenciaTriaje` · 400 datos inválidos · 401 · 403 |
+| `POST /api/tickets/:id/decision` | agente, administrador | 201 resultado · 400 · 401 · 403 · 404 · 409 ya decidido |
+
+Mientras AUTH-03 no esté listo se usa `rolRequeridoProvisional`, que lee `req.session.usuario = { id, rol }`.
+
+## Pruebas
+
+`npm test` — 61 pruebas del módulo con SQLite en memoria (`fixture.ts` replica el seed): clasificador, matriz, sugerencia/técnico, decisión y rutas HTTP con supertest.
