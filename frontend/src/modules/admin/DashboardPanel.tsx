@@ -270,7 +270,7 @@ export function DashboardPanel() {
     );
   }
 
-  const { tickets, precision, decisiones } = metricas;
+  const { tickets, precision, decisiones, comparacionTriaje } = metricas;
   const nombresCampo: Record<string, string> = {
     categoria: 'Categoría',
     prioridad: 'Prioridad',
@@ -325,6 +325,47 @@ export function DashboardPanel() {
         <TarjetaIndicador etiqueta="Aceptación del triaje" valor={`${PORCENTAJE.format(precision.global.porcentaje)}%`} detalle={`${formatear(precision.global.aceptadas)} de ${formatear(precision.global.total)} decisiones confirmadas`} icono={BadgeCheck} tono="blue" />
         <TarjetaIndicador etiqueta="Prioridad crítica" valor={formatear(tickets.criticos)} detalle="Según prioridad final o sugerida" icono={TriangleAlert} tono="red" />
       </div>
+
+      <section aria-labelledby="comparacion-modelos-titulo">
+        <div className="dashboard-chart-heading">
+          <div>
+            <h2 id="comparacion-modelos-titulo">¿Cómo se comportan las recomendaciones?</h2>
+            <p>Compara la aceptación de las reglas con una evaluación experimental de Naive Bayes.</p>
+          </div>
+          <span className="dashboard-chart-mark" aria-hidden="true"><BadgeCheck size={19} /></span>
+        </div>
+        <div className="dashboard-model-grid">
+          <article className="dashboard-model-card is-rules">
+            <span className="dashboard-model-label">Método actual · reglas</span>
+            <strong className="dashboard-model-score">{PORCENTAJE.format(comparacionTriaje.aceptacionReglasCategoria.porcentaje)}%</strong>
+            <p>El agente mantuvo la categoría sugerida en {formatear(comparacionTriaje.aceptacionReglasCategoria.aceptadas)} de {formatear(comparacionTriaje.aceptacionReglasCategoria.total)} decisiones confirmadas.</p>
+            <div className="dashboard-model-track" role="img" aria-label={`Aceptación de categoría por reglas: ${PORCENTAJE.format(comparacionTriaje.aceptacionReglasCategoria.porcentaje)} por ciento`}>
+              <span style={{ width: `${Math.max(0, Math.min(100, comparacionTriaje.aceptacionReglasCategoria.porcentaje))}%` }} />
+            </div>
+            <small>Es una tasa de aceptación humana, no una precisión estadística.</small>
+          </article>
+          <article className="dashboard-model-card is-ml">
+            <span className="dashboard-model-label">Naive Bayes · evaluación experimental</span>
+            {comparacionTriaje.evaluacionMl.disponible ? (
+              <>
+                <strong className="dashboard-model-score">{PORCENTAJE.format(comparacionTriaje.evaluacionMl.porcentaje ?? 0)}%</strong>
+                <p>Acertó {formatear(comparacionTriaje.evaluacionMl.aciertos)} de {formatear(comparacionTriaje.evaluacionMl.ejemplos)} categorías en validación cruzada.</p>
+                <div className="dashboard-model-track" role="img" aria-label={`Acierto Naive Bayes en validación cruzada: ${PORCENTAJE.format(comparacionTriaje.evaluacionMl.porcentaje ?? 0)} por ciento`}>
+                  <span style={{ width: `${Math.max(0, Math.min(100, comparacionTriaje.evaluacionMl.porcentaje ?? 0))}%` }} />
+                </div>
+                <small>Cada ticket se predijo excluyéndolo del entrenamiento (dejar uno fuera).</small>
+              </>
+            ) : (
+              <>
+                <strong className="dashboard-model-score is-pending">Aún sin validar</strong>
+                <p>{comparacionTriaje.evaluacionMl.motivo}</p>
+                <small>Las métricas aparecerán cuando haya suficientes decisiones confirmadas.</small>
+              </>
+            )}
+          </article>
+        </div>
+        <p className="dashboard-footnote">Los porcentajes describen mediciones distintas y no deben compararse como si fueran la misma prueba. Las decisiones pendientes quedan fuera.</p>
+      </section>
 
       {tickets.total === 0 && (
         <div className="empty-state dashboard-empty" role="status">

@@ -113,6 +113,44 @@ export default function TriajePage() {
 
       {sugerencia && catalogos && (
         <>
+          {sugerenciaMl && (
+            <section className="feature-card mb-4" aria-labelledby="comparacion-triaje-titulo">
+              <h2 id="comparacion-triaje-titulo" className="h5">Comparación de recomendaciones</h2>
+              <p className="small text-body-secondary">Dos métodos analizan el mismo texto. La decisión final sigue siendo del agente.</p>
+              <div className="row g-3">
+                <article className="col-md-6">
+                  <div className="h-100 rounded border p-3">
+                    <span className="badge text-bg-primary mb-2">Reglas actuales</span>
+                    <h3 className="h6">{sugerencia.categoria}</h3>
+                    <p className="small mb-0">{sugerencia.es_otros
+                      ? 'Sin coincidencia con el diccionario; requiere revisión.'
+                      : <>Palabra del diccionario: «{sugerencia.palabra_activadora}».</>}</p>
+                  </div>
+                </article>
+                <article className="col-md-6">
+                  <div className="h-100 rounded border p-3">
+                    <span className="badge text-bg-info mb-2">Naive Bayes experimental</span>
+                    {sugerenciaMl.disponible && sugerenciaMl.prediccion ? (
+                      <>
+                        <h3 className="h6">{sugerenciaMl.prediccion.categoria}</h3>
+                        <p className="small mb-2">Preferencia estimada: {sugerenciaMl.prediccion.confianza}%</p>
+                        <p className="small mb-0">Términos que favorecieron esta categoría: {sugerenciaMl.prediccion.evidencias.length
+                          ? sugerenciaMl.prediccion.evidencias.map((palabra) => <code key={palabra} className="me-1">{palabra}</code>)
+                          : 'el modelo no encontró términos conocidos que la distingan.'}</p>
+                      </>
+                    ) : <p className="small mb-0">{sugerenciaMl.motivo}</p>}
+                  </div>
+                </article>
+              </div>
+              {sugerenciaMl.disponible && sugerenciaMl.prediccion && (
+                <div className={`alert ${sugerenciaMl.prediccion.categoria_id === sugerencia.categoria_id ? 'alert-success' : 'alert-warning'} py-2 mt-3 mb-0`} role="status">
+                  {sugerenciaMl.prediccion.categoria_id === sugerencia.categoria_id
+                    ? `Ambos métodos coinciden en «${sugerencia.categoria}».`
+                    : `Los métodos discrepan: reglas → «${sugerencia.categoria}»; Naive Bayes → «${sugerenciaMl.prediccion.categoria}».`}
+                </div>
+              )}
+            </section>
+          )}
           <h2 className="h5 mb-3">Vista previa de la sugerencia</h2>
           <PanelSugerencia
             key={JSON.stringify(sugerencia)}
@@ -130,7 +168,7 @@ export default function TriajePage() {
             <dl className="row mb-2">
               <dt className="col-sm-4">Categoría sugerida por el modelo</dt>
               <dd className="col-sm-8">{sugerenciaMl.prediccion.categoria}</dd>
-              <dt className="col-sm-4">Confianza estimada</dt>
+              <dt className="col-sm-4">Preferencia estimada del modelo</dt>
               <dd className="col-sm-8">{sugerenciaMl.prediccion.confianza}%</dd>
             </dl>
           ) : <p className="mb-2">{sugerenciaMl.motivo}</p>}

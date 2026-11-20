@@ -1,6 +1,7 @@
 
 import type Database from 'better-sqlite3';
 import { CONDICION_DECISION_CONFIRMADA } from '../triaje/decision';
+import { evaluarNaiveBayes, type EvaluacionClasificadorMl } from '../triaje/ml-clasificador';
 
 interface Conteo {
   nombre: string;
@@ -48,6 +49,10 @@ export interface MetricasDashboard {
     global: Precision;
     porCampo: PrecisionCampo[];
     porCategoriaSugerida: PrecisionCategoria[];
+  };
+  comparacionTriaje: {
+    aceptacionReglasCategoria: Precision;
+    evaluacionMl: EvaluacionClasificadorMl;
   };
 }
 
@@ -260,6 +265,9 @@ export function obtenerMetricas(
       )
     }));
 
+  const aceptacionCategoria = porCampo.find(({ campo }) => campo === 'categoria')!;
+  const evaluacionMl = evaluarNaiveBayes(db);
+
   return {
     tickets: {
       total: conteo.total,
@@ -274,6 +282,14 @@ export function obtenerMetricas(
       global: precisionGlobal,
       porCampo,
       porCategoriaSugerida
-    }
+    },
+    comparacionTriaje: {
+      aceptacionReglasCategoria: {
+        total: aceptacionCategoria.total,
+        aceptadas: aceptacionCategoria.aceptadas,
+        porcentaje: aceptacionCategoria.porcentaje,
+      },
+      evaluacionMl,
+    },
   };
 }

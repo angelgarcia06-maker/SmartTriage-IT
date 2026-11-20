@@ -963,6 +963,83 @@ textarea.form-control {
   --kpi-tint: #fef2f2;
 }
 
+.dashboard-model-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.dashboard-model-card {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+
+.dashboard-model-card::before {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: #2563eb;
+  content: "";
+}
+
+.dashboard-model-card.is-ml::before {
+  background: #7c3aed;
+}
+
+.dashboard-model-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dashboard-model-score {
+  color: var(--navy);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.dashboard-model-score.is-pending {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-model-card p,
+.dashboard-model-card small {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.dashboard-model-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.dashboard-model-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+  transition: width 220ms ease;
+}
+
+.dashboard-model-card.is-ml .dashboard-model-track span {
+  background: #7c3aed;
+}
+
 .dashboard-chart-heading {
   align-items: center;
   margin-top: 8px;
@@ -1325,7 +1402,8 @@ textarea.form-control {
 
   .dashboard-kpis,
   .dashboard-chart-grid,
-  .dashboard-detail-grid {
+  .dashboard-detail-grid,
+  .dashboard-model-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
   }

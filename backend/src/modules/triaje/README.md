@@ -97,8 +97,11 @@ desde `req.session.userId`; nunca aceptan encabezados de identidad.
 |---|---|---|
 | `GET /api/triaje/catalogos` | agente, administrador | 200 categorías, grupos y técnicos activos de SQLite · 401 · 403 |
 | `POST /api/triaje/sugerir` | agente, administrador | 200 `SugerenciaTriaje` · 400 datos inválidos · 401 · 403 |
+| `POST /api/triaje/sugerir-ml` | agente, administrador | 200 predicción experimental, términos favorables y número de ejemplos · 400 · 401 · 403 |
 | `GET /api/tickets/:id/decision` | agente, administrador, técnico asignado | 200 sugerencia/decisión · 401 · 403 · 404 |
 | `POST /api/tickets/:id/decision` | agente, administrador | 201 resultado · 400 · 401 · 403 · 404 · 409 ya decidido |
+
+ADM-04 añade al Dashboard la tasa de aceptación de la categoría sugerida por reglas y la evaluación cruzada de Naive Bayes. La segunda usa dejar-uno-fuera sobre decisiones confirmadas: cada ticket se evalúa con un modelo que no lo incluyó al entrenar. Si un fold no conserva el mínimo de ejemplos por categoría, se excluye y se informa el número realmente evaluado.
 
 Las escrituras de Triaje requieren origen confiable y token CSRF de sesión. El detalle
 de decisiones no consulta catálogos al rol técnico, que no está autorizado a leerlos.

@@ -25,6 +25,15 @@ export interface PrecisionPorCategoria extends PrecisionMetrica {
   categoria: string;
 }
 
+export interface EvaluacionMlDashboard {
+  disponible: boolean;
+  motivo: string | null;
+  ejemplos: number;
+  aciertos: number;
+  porcentaje: number | null;
+  metodo: 'validacion-cruzada-dejar-uno-fuera';
+}
+
 export interface MetricasDashboard {
   tickets: {
     total: number;
@@ -49,6 +58,10 @@ export interface MetricasDashboard {
     global: PrecisionMetrica;
     porCampo: PrecisionPorCampo[];
     porCategoriaSugerida: PrecisionPorCategoria[];
+  };
+  comparacionTriaje: {
+    aceptacionReglasCategoria: PrecisionMetrica;
+    evaluacionMl: EvaluacionMlDashboard;
   };
 }
 
