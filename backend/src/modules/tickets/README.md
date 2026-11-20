@@ -36,3 +36,10 @@
 - `Cerrado` es un estado terminal; cualquier transición posterior se rechaza con 409 y no agrega eventos al historial.
 - `tickets.routes.test.ts` cubre el flujo de alta, consulta, filtros, cambios de estado, cierre y cronología con SQLite en memoria.
 - También verifica que un fallo al insertar el historial revierte el cambio de estado.
+
+## Seguimiento y asignación
+
+- Agentes y administradores pueden asignar o reasignar un ticket a un técnico activo con `PATCH /api/tickets/:id/asignacion`; la operación registra técnico, grupo y cambio de estado en el historial.
+- El técnico solo consulta sus tickets asignados. Puede iniciar la atención y marcar un ticket como resuelto después de registrar la solución aplicada.
+- El cierre de tickets resueltos corresponde al agente o administrador. La solución queda guardada en `tickets.resolucion` y en el historial.
+- La migración de `resolucion` es aditiva: bases que ya tienen tickets conservan sus datos y reciben la columna si todavía no existe.

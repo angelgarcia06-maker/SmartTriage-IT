@@ -30,6 +30,7 @@ export interface TicketDetalle extends TicketResumen {
   descripcion: string;
   impacto: Impacto;
   urgencia: Urgencia;
+  resolucion: string | null;
 }
 
 export interface FiltrosTickets {
@@ -116,13 +117,14 @@ export async function actualizarEstadoTicket(
   id: number,
   estado: EstadoTicket,
   motivo?: string,
+  resolucion?: string,
 ): Promise<{ ticket_id: number; estado: EstadoTicket; fecha: string }> {
   const tokenCsrf = await obtenerTokenCsrf();
   const respuesta = await fetch(API.tickets.state(id), {
     method: 'PATCH',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': tokenCsrf },
-    body: JSON.stringify(motivo ? { estado, motivo } : { estado }),
+    body: JSON.stringify({ estado, ...(motivo ? { motivo } : {}), ...(resolucion ? { resolucion } : {}) }),
   });
   const cuerpo = await respuesta.json().catch(() => ({}));
   if (!respuesta.ok) {
@@ -130,4 +132,19 @@ export async function actualizarEstadoTicket(
     throw new Error(error.message ?? `No se pudo cambiar el estado (${respuesta.status}).`);
   }
   return cuerpo as { ticket_id: number; estado: EstadoTicket; fecha: string };
+}
+
+export async function actualizarAsignacionTicket(id: number, tecnicoId: number | null): Promise<void> {
+  const tokenCsrf = await obtenerTokenCsrf();
+  const respuesta = await fetch(API.tickets.assignment(id), {
+    method: 'PATCH',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': tokenCsrf },
+    body: JSON.stringify({ tecnico_id: tecnicoId }),
+  });
+  const cuerpo = await respuesta.json().catch(() => ({}));
+  if (!respuesta.ok) {
+    const error = cuerpo as { message?: string };
+    throw new Error(error.message ?? `No se pudo asignar el ticket (${respuesta.status}).`);
+  }
 }

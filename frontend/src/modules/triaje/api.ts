@@ -14,7 +14,7 @@ export interface ResultadoSugerenciaMl {
   disponible: boolean;
   motivo: string | null;
   ejemplos_entrenamiento: number;
-  prediccion: { categoria_id: number; categoria: string; confianza: number } | null;
+  prediccion: { categoria_id: number; categoria: string; confianza: number; evidencias: string[] } | null;
 }
 
 export interface DetalleDecisionTicket {

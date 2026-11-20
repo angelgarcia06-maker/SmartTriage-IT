@@ -22,11 +22,9 @@ El primer arranque genera una base local con 40 tickets ficticios, historial y d
 
 ## Funciones de la aplicación
 
-- La bandeja permite buscar y filtrar incidencias por la categoría y prioridad finales cuando ya fueron confirmadas. El detalle conserva también la sugerencia original. Los tickets se muestran en páginas de 10.
-- El detalle presenta la sugerencia original, la decisión final y el historial. Los técnicos pueden consultar los tickets asignados.
-- El panel de administración muestra la carga abierta por técnico y las decisiones de triaje aceptadas, corregidas y pendientes.
-- La página Triaje compara las reglas actuales con un clasificador experimental Naive Bayes, entrenado con decisiones humanas confirmadas. La confianza mostrada no equivale a precisión validada.
+- La bandeja permite buscar y filtrar incidencias por estado, categoría, prioridad y técnico. El técnico ve sus tickets asignados; agentes y administradores gestionan la cola.
+- Agentes y administradores pueden asignar o reasignar técnicos. El técnico registra la solución antes de marcar un ticket como resuelto; el agente o administrador puede cerrarlo. Los cambios quedan en el historial.
+- El Dashboard permite filtrar tickets y decisiones por fecha de creación, muestra la carga por técnico y compara las sugerencias aceptadas con los aciertos obtenidos al probar el clasificador con tickets apartados.
+- La página Triaje compara la sugerencia por reglas con otra basada en tickets anteriores; muestra si coinciden y qué términos favorecieron cada categoría.
 
-El modelo es una demostración inicial. Los ejemplos de la base demo son ficticios, por lo que su resultado no representa desempeño con incidencias reales. Para evaluar calidad se necesita recopilar más decisiones revisadas y medir el modelo con ejemplos que no se usaron durante el entrenamiento.
-
-La bandeja permite buscar y filtrar incidencias y las muestra en páginas de 10. El detalle incluye la sugerencia, la decisión y el historial. El Dashboard administrativo presenta métricas de tickets y decisiones de triaje.
+El método aprende de las categorías finales confirmadas por agentes. Para medir sus aciertos, se prueba cada ticket sin usarlo para aprender esa sugerencia. Si faltan tickets revisados por categoría, el panel avisa que todavía no puede medirlo. Los ejemplos de la demo son ficticios y no representan el desempeño con incidencias reales. El nombre técnico del método es Naive Bayes.

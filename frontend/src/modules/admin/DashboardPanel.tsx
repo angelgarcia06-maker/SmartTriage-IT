@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type ComponentType } from 'react';
+import { useCallback, useEffect, useState, type ComponentType, type FormEvent } from 'react';
 import {
   BadgeCheck,
   ChartNoAxesColumnIncreasing,
@@ -228,14 +228,18 @@ export function DashboardPanel() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [actualizado, setActualizado] = useState<Date | null>(null);
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
+  const [filtrosAplicados, setFiltrosAplicados] = useState<{ fecha_desde?: string; fecha_hasta?: string }>({});
 
-  const cargarDatos = useCallback(async () => {
+  const cargarDatos = useCallback(async (fechas: { fecha_desde?: string; fecha_hasta?: string } = {}) => {
     setCargando(true);
     setError('');
 
     try {
-      const datos = await obtenerMetricasDashboard();
+      const datos = await obtenerMetricasDashboard(fechas);
       setMetricas(datos);
+      setFiltrosAplicados(fechas);
       setActualizado(new Date());
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error al cargar las métricas.');
@@ -245,7 +249,7 @@ export function DashboardPanel() {
   }, []);
 
   useEffect(() => {
-    void cargarDatos();
+    void cargarDatos({});
   }, [cargarDatos]);
 
   if (cargando && !metricas) return <EsqueletoDashboard />;
@@ -263,14 +267,14 @@ export function DashboardPanel() {
         <div className="alert alert-danger" role="alert">
           {error || 'No hay métricas disponibles.'}
         </div>
-        <button type="button" className="btn btn-primary" onClick={() => void cargarDatos()}>
+        <button type="button" className="btn btn-primary" onClick={() => void cargarDatos(filtrosAplicados)}>
           <RefreshCw size={16} aria-hidden="true" /> Reintentar
         </button>
       </section>
     );
   }
 
-  const { tickets, precision, decisiones } = metricas;
+  const { tickets, precision, decisiones, comparacionTriaje } = metricas;
   const nombresCampo: Record<string, string> = {
     categoria: 'Categoría',
     prioridad: 'Prioridad',
@@ -293,6 +297,18 @@ export function DashboardPanel() {
     ? new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit' }).format(actualizado)
     : '—';
 
+  function aplicarRango(evento: FormEvent<HTMLFormElement>) {
+    evento.preventDefault();
+    if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
+      setError('La fecha inicial debe ser anterior o igual a la fecha final.');
+      return;
+    }
+    void cargarDatos({
+      ...(fechaDesde ? { fecha_desde: fechaDesde } : {}),
+      ...(fechaHasta ? { fecha_hasta: fechaHasta } : {}),
+    });
+  }
+
   return (
     <section className="page-section dashboard-page" aria-labelledby="dashboard-titulo">
       <header className="dashboard-heading">
@@ -306,7 +322,7 @@ export function DashboardPanel() {
           <button
             type="button"
             className="btn btn-outline-primary"
-            onClick={() => void cargarDatos()}
+            onClick={() => void cargarDatos(filtrosAplicados)}
             disabled={cargando}
           >
             <RefreshCw size={16} aria-hidden="true" className={cargando ? 'dashboard-refreshing' : ''} />
@@ -317,6 +333,24 @@ export function DashboardPanel() {
 
       {error && <div className="alert alert-warning" role="alert">{error} Se conservan las últimas métricas cargadas.</div>}
 
+      <form className="dashboard-date-filter" onSubmit={aplicarRango}>
+        <div>
+          <label htmlFor="dashboard-fecha-desde" className="form-label">Desde</label>
+          <input id="dashboard-fecha-desde" className="form-control" type="date" value={fechaDesde} onChange={(evento) => setFechaDesde(evento.target.value)} />
+        </div>
+        <div>
+          <label htmlFor="dashboard-fecha-hasta" className="form-label">Hasta</label>
+          <input id="dashboard-fecha-hasta" className="form-control" type="date" value={fechaHasta} onChange={(evento) => setFechaHasta(evento.target.value)} />
+        </div>
+        <div className="d-flex flex-wrap gap-2 align-self-end">
+          <button className="btn btn-primary" type="submit" disabled={cargando}>Aplicar fechas</button>
+          <button className="btn btn-outline-secondary" type="button" disabled={cargando && !metricas} onClick={() => {
+            setFechaDesde(''); setFechaHasta(''); void cargarDatos({});
+          }}>Ver todo</button>
+        </div>
+        <p className="small text-body-secondary mb-0">El período se aplica por fecha de creación del ticket. La evaluación del clasificador usa todos los tickets revisados.</p>
+      </form>
+
       <div className="dashboard-kpis" aria-label="Indicadores clave">
         <TarjetaIndicador etiqueta="Total de tickets" valor={formatear(tickets.total)} detalle="Incidencias registradas" icono={Ticket} tono="blue" />
         <TarjetaIndicador etiqueta="Tickets abiertos" valor={formatear(tickets.abiertos)} detalle="Nuevo, asignado o en proceso" icono={CircleDashed} tono="teal" />
@@ -325,6 +359,47 @@ export function DashboardPanel() {
         <TarjetaIndicador etiqueta="Aceptación del triaje" valor={`${PORCENTAJE.format(precision.global.porcentaje)}%`} detalle={`${formatear(precision.global.aceptadas)} de ${formatear(precision.global.total)} decisiones confirmadas`} icono={BadgeCheck} tono="blue" />
         <TarjetaIndicador etiqueta="Prioridad crítica" valor={formatear(tickets.criticos)} detalle="Según prioridad final o sugerida" icono={TriangleAlert} tono="red" />
       </div>
+
+      <section aria-labelledby="comparacion-modelos-titulo">
+        <div className="dashboard-chart-heading">
+          <div>
+            <h2 id="comparacion-modelos-titulo">¿Cómo se comportan las recomendaciones?</h2>
+            <p>Revisa cuántas sugerencias aceptan los agentes y cuántas acierta el método que aprende de tickets anteriores.</p>
+          </div>
+          <span className="dashboard-chart-mark" aria-hidden="true"><BadgeCheck size={19} /></span>
+        </div>
+        <div className="dashboard-model-grid">
+          <article className="dashboard-model-card is-rules">
+            <span className="dashboard-model-label">Método actual · reglas</span>
+            <strong className="dashboard-model-score">{PORCENTAJE.format(comparacionTriaje.aceptacionReglasCategoria.porcentaje)}%</strong>
+            <p>El agente mantuvo la categoría sugerida en {formatear(comparacionTriaje.aceptacionReglasCategoria.aceptadas)} de {formatear(comparacionTriaje.aceptacionReglasCategoria.total)} decisiones confirmadas.</p>
+            <div className="dashboard-model-track" role="img" aria-label={`Aceptación de categoría por reglas: ${PORCENTAJE.format(comparacionTriaje.aceptacionReglasCategoria.porcentaje)} por ciento`}>
+              <span style={{ width: `${Math.max(0, Math.min(100, comparacionTriaje.aceptacionReglasCategoria.porcentaje))}%` }} />
+            </div>
+            <small>Es una tasa de aceptación humana, no una precisión estadística.</small>
+          </article>
+          <article className="dashboard-model-card is-ml">
+            <span className="dashboard-model-label">Aprendizaje con tickets anteriores</span>
+            {comparacionTriaje.evaluacionMl.disponible ? (
+              <>
+                <strong className="dashboard-model-score">{PORCENTAJE.format(comparacionTriaje.evaluacionMl.porcentaje ?? 0)}%</strong>
+                <p>Acertó {formatear(comparacionTriaje.evaluacionMl.aciertos)} de {formatear(comparacionTriaje.evaluacionMl.ejemplos)} categorías en la prueba.</p>
+                <div className="dashboard-model-track" role="img" aria-label={`Aciertos al probar tickets apartados: ${PORCENTAJE.format(comparacionTriaje.evaluacionMl.porcentaje ?? 0)} por ciento`}>
+                  <span style={{ width: `${Math.max(0, Math.min(100, comparacionTriaje.evaluacionMl.porcentaje ?? 0))}%` }} />
+                </div>
+                <small>Se probó cada ticket sin usarlo para aprender esa sugerencia.</small>
+              </>
+            ) : (
+              <>
+                <strong className="dashboard-model-score is-pending">Faltan ejemplos</strong>
+                <p>Se necesitan más tickets revisados y categorías con suficientes ejemplos para medir sus aciertos.</p>
+                <small>La sugerencia puede mostrarse antes; la medición aparecerá cuando haya datos suficientes.</small>
+              </>
+            )}
+          </article>
+        </div>
+        <p className="dashboard-footnote">Un porcentaje cuenta sugerencias que los agentes aceptaron; el otro cuenta categorías acertadas al probar tickets apartados. Son medidas distintas. Las decisiones pendientes quedan fuera.</p>
+      </section>
 
       {tickets.total === 0 && (
         <div className="empty-state dashboard-empty" role="status">

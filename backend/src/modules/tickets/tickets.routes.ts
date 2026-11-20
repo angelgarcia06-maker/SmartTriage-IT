@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db as conexionPredeterminada } from '../../db/connection';
 import {
   cambiarEstadoTicket,
+  actualizarAsignacionTicket,
   crearTicket,
   ErrorEstadoTicket,
   listarTickets,
@@ -42,7 +43,9 @@ const esquemaFiltros = z.object({
 const esquemaCambioEstado = z.object({
   estado: z.enum(ESTADOS_TICKET),
   motivo: z.string().trim().min(1).max(500).optional(),
+  resolucion: z.string().trim().min(1).max(5000).optional(),
 }).strict();
+const esquemaAsignacion = z.object({ tecnico_id: idFiltro.nullable() }).strict();
 
 export interface OpcionesRutasTickets {
   conexion?: Database.Database;
@@ -189,7 +192,34 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
     }
 
     try {
-      res.json(cambiarEstadoTicket(id, datos.data.estado, usuario, datos.data.motivo, conexion));
+      res.json(cambiarEstadoTicket(id, datos.data.estado, usuario, datos.data.motivo, conexion, datos.data.resolucion));
+    } catch (error) {
+      if (error instanceof ErrorEstadoTicket) {
+        res.status(error.status).json({ message: error.message });
+        return;
+      }
+      throw error;
+    }
+  });
+
+  router.patch('/:id/asignacion', requiereAutenticacion, protegerEscrituras ?? continuar, (req, res) => {
+    const usuario = usuarioDeSesion(res);
+    if (!usuario) {
+      res.status(401).json({ message: 'No se pudo identificar al usuario de la sesión.' });
+      return;
+    }
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ message: 'Id de ticket inválido.' });
+      return;
+    }
+    const datos = esquemaAsignacion.safeParse(req.body);
+    if (!datos.success) {
+      res.status(400).json({ message: 'Asignación inválida.', errores: datos.error.flatten().fieldErrors });
+      return;
+    }
+    try {
+      res.json(actualizarAsignacionTicket(id, datos.data.tecnico_id, usuario, conexion));
     } catch (error) {
       if (error instanceof ErrorEstadoTicket) {
         res.status(error.status).json({ message: error.message });
