@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import Database from 'better-sqlite3';
 import express, { type RequestHandler } from 'express';
 import request from 'supertest';
@@ -39,9 +41,9 @@ function insertarTicket(
 ): number {
   const resultado = conexion.prepare(`
     INSERT INTO tickets (
-      solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por,
+      solicitante, titulo, descripcion, impacto, urgencia, estado, fecha_creacion, creado_por,
       tecnico_id, tecnico_sugerido_id, categoria_sugerida_id, prioridad_sugerida
-    ) VALUES (?, ?, 'Detalle de prueba', 'Alto', 'Alta', ?, 7, ?, ?, ?, ?)
+    ) VALUES (?, ?, 'Detalle de prueba', 'Alto', 'Alta', ?, '2026-11-13T00:00:00.000Z', 7, ?, ?, ?, ?)
   `).run(
     opciones.solicitante ?? 'Ana',
     titulo,
@@ -56,40 +58,15 @@ function insertarTicket(
 
 beforeEach(() => {
   conexion = new Database(':memory:');
+  conexion.exec(fs.readFileSync(path.resolve(__dirname, '../../db/schema.sql'), 'utf8'));
   conexion.exec(`
-    CREATE TABLE usuarios (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL, rol TEXT NOT NULL);
-    INSERT INTO usuarios (id, nombre, rol) VALUES (7, 'Agente de prueba', 'agente');
-    INSERT INTO usuarios (id, nombre, rol) VALUES (9, 'Técnico de prueba', 'tecnico');
-    INSERT INTO usuarios (id, nombre, rol) VALUES (11, 'Otro técnico', 'tecnico');
-    CREATE TABLE categorias (id INTEGER PRIMARY KEY, nombre TEXT NOT NULL);
-    INSERT INTO categorias (id, nombre) VALUES (3, 'Redes');
-    INSERT INTO categorias (id, nombre) VALUES (4, 'Hardware');
-    CREATE TABLE tickets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      solicitante TEXT NOT NULL,
-      titulo TEXT NOT NULL,
-      descripcion TEXT NOT NULL,
-      impacto TEXT NOT NULL,
-      urgencia TEXT NOT NULL,
-      estado TEXT NOT NULL DEFAULT 'Nuevo',
-      fecha_creacion TEXT NOT NULL DEFAULT '2026-11-13T00:00:00.000Z',
-      creado_por INTEGER NOT NULL REFERENCES usuarios(id),
-      tecnico_id INTEGER REFERENCES usuarios(id),
-      tecnico_sugerido_id INTEGER REFERENCES usuarios(id),
-      categoria_sugerida_id INTEGER,
-      prioridad_sugerida TEXT,
-      grupo_sugerido_id INTEGER,
-      palabra_activadora TEXT
-    );
-    CREATE TABLE historial (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ticket_id INTEGER NOT NULL REFERENCES tickets(id),
-      usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
-      accion TEXT NOT NULL,
-      valor_anterior TEXT,
-      valor_nuevo TEXT,
-      fecha TEXT NOT NULL DEFAULT '2026-11-13T00:00:00.000Z'
-    );
+    INSERT INTO grupos (id, nombre) VALUES (1, 'Soporte'), (2, 'Infraestructura');
+    INSERT INTO usuarios (id, nombre, usuario, password_hash, rol, grupo_id)
+    VALUES
+      (7, 'Agente de prueba', 'agente-test', 'hash', 'agente', NULL),
+      (9, 'Técnico de prueba', 'tecnico-test', 'hash', 'tecnico', 2),
+      (11, 'Otro técnico', 'tecnico-otro', 'hash', 'tecnico', 1);
+    INSERT INTO categorias (id, nombre, grupo_id) VALUES (3, 'Redes', 2), (4, 'Hardware', 1);
   `);
 });
 
@@ -315,13 +292,14 @@ describe('PATCH /api/tickets/:id/estado y GET /api/tickets/:id/historial', () =>
 
     const asignado = await request(agente).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
     const enProceso = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
-    const resuelto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const resolucion = 'Se restableció la conexión y se verificó el acceso.';
+    const resuelto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto', resolucion });
     const reaperturaInvalida = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
     const reabierto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({
       estado: 'En proceso',
       motivo: 'La falla volvió después de la solución.',
     });
-    const resueltoDeNuevo = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const resueltoDeNuevo = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto', resolucion });
     const cerrado = await request(agente).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Cerrado' });
     const historial = await request(agente).get(`/api/tickets/${ticketId}/historial`);
 
@@ -331,10 +309,15 @@ describe('PATCH /api/tickets/:id/estado y GET /api/tickets/:id/historial', () =>
     expect(resueltoDeNuevo.status).toBe(200);
     expect(cerrado.body.estado).toBe('Cerrado');
     expect(historial.status).toBe(200);
-    expect(historial.body.historial.map((evento: { valor_nuevo: string }) => evento.valor_nuevo)).toEqual([
+    expect(historial.body.historial.filter((evento: { accion: string }) =>
+      evento.accion === 'Cambio de estado' || evento.accion.startsWith('Reapertura:'))
+      .map((evento: { valor_nuevo: string }) => evento.valor_nuevo)).toEqual([
       'Asignado', 'En proceso', 'Resuelto', 'En proceso', 'Resuelto', 'Cerrado',
     ]);
-    expect(historial.body.historial[3].accion).toContain('La falla volvió después de la solución.');
+    expect(historial.body.historial.find((evento: { accion: string }) => evento.accion.startsWith('Reapertura:'))?.accion)
+      .toContain('La falla volvió después de la solución.');
+    expect(historial.body.historial.filter((evento: { accion: string }) => evento.accion === 'Solución registrada'))
+      .toHaveLength(2);
   });
 
   it('rechaza transiciones inválidas y respeta sesión, rol y asignación', async () => {
@@ -344,7 +327,10 @@ describe('PATCH /api/tickets/:id/estado y GET /api/tickets/:id/historial', () =>
     const rolInvalido = crearApp(true, { id: 7, rol: 'observador' });
     const sinSesion = crearApp(false);
 
-    const transicionInvalida = await request(agente).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
+    const transicionInvalida = await request(agente).patch(`/api/tickets/${ticketId}/estado`).send({
+      estado: 'Resuelto',
+      resolucion: 'Se revisa el flujo de permisos.',
+    });
     const asignacionAjena = await request(tecnicoAjeno).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
     const rolDenegado = await request(rolInvalido).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
     const noAutenticado = await request(sinSesion).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
@@ -410,8 +396,11 @@ describe('flujo completo de alta, consulta, atención y cierre', () => {
     const detalleInicial = await request(app).get(`/api/tickets/${ticketId}`);
     const asignado = await request(app).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Asignado' });
     const enProceso = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
-    const resuelto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Resuelto' });
-    const cerrado = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Cerrado' });
+    const resuelto = await request(tecnico).patch(`/api/tickets/${ticketId}/estado`).send({
+      estado: 'Resuelto',
+      resolucion: 'Se restableció la conexión wifi y se validó con el solicitante.',
+    });
+    const cerrado = await request(app).patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'Cerrado' });
     const transicionDesdeCerrado = await request(app)
       .patch(`/api/tickets/${ticketId}/estado`).send({ estado: 'En proceso' });
     const historial = await request(app).get(`/api/tickets/${ticketId}/historial`);
@@ -424,9 +413,12 @@ describe('flujo completo de alta, consulta, atención y cierre', () => {
     expect([asignado.status, enProceso.status, resuelto.status, cerrado.status]).toEqual([200, 200, 200, 200]);
     expect(transicionDesdeCerrado.status).toBe(409);
     expect(detalleFinal.body.estado).toBe('Cerrado');
-    expect(historial.body.historial.map((evento: { valor_nuevo: string }) => evento.valor_nuevo)).toEqual([
+    expect(historial.body.historial.filter((evento: { accion: string }) => evento.accion === 'Cambio de estado')
+      .map((evento: { valor_nuevo: string }) => evento.valor_nuevo)).toEqual([
       'Asignado', 'En proceso', 'Resuelto', 'Cerrado',
     ]);
-    expect(historial.body.historial).toHaveLength(4);
+    expect(historial.body.historial).toHaveLength(5);
+    expect(historial.body.historial.find((evento: { accion: string }) => evento.accion === 'Solución registrada')?.valor_nuevo)
+      .toBe('Se restableció la conexión wifi y se validó con el solicitante.');
   });
 });

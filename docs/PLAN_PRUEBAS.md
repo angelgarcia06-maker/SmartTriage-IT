@@ -69,7 +69,7 @@ Windows 10/11, Node.js 24, npm, repo `angelgarcia06-maker/SmartTriage-IT`, base 
 
 ## Evidencia automatizada de auditoría
 
-- `npm run check` — PASA: compilación backend/frontend y 194 pruebas en 20 archivos, incluidas migración, autorización, CSRF, asignación, estados, decisiones e historial.
+- `npm run check` — PASA: compilación backend/frontend y 196 pruebas en 20 archivos, incluidas migración, autorización, CSRF, asignación, estados, decisiones e historial.
 - `npm run db:seed:demo` — PASA: seed validado sin modificar registros; 40 tickets (8 Nuevo, 8 Asignado, 10 En proceso, 9 Resuelto, 5 Cerrado), 25 decisiones aceptadas, 10 corregidas y 5 pendientes; 110 eventos de historial; `integrity_check: ok`.
 - `git diff --check` — PASA.
 - Validación runtime standalone — PASA: 5/5 aserciones; `npm run dev:demo` sirvió frontend y `/api/health` respondió HTTP 200.
