@@ -8,8 +8,10 @@ Node.js 22.12+ o 24 LTS, npm, Git. Para menor fricción use Node 24 LTS.
 Desde la raíz del repositorio en la rama `main`, instala las dependencias la primera vez:
 
 ```powershell
-npm ci
+npm ci --ignore-scripts
 ```
+
+Este comando usa los binarios incluidos en las dependencias fijadas y evita que npm intente recompilar SQLite en Windows. Ejecuta el siguiente paso cuando termine la instalación.
 
 Para abrir la demo, ejecuta:
 

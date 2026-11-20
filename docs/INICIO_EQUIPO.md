@@ -5,21 +5,17 @@
 > Existe otro repositorio con el mismo nombre en `amena-otto`. Para el trabajo de los Issues #1–#26 usar **angelgarcia06-maker**. No confundir con TI SmartDesk AI.
 
 ## 1. Preparación (Windows/PowerShell)
-Instala Node.js 24, Git y VS Code. Para compilar `better-sqlite3` en Windows podría requerirse Visual Studio C++ Build Tools.
+Instala Node.js 24 y Git. Instala las dependencias una vez desde la raíz del repositorio.
 
 ```powershell
 git clone https://github.com/angelgarcia06-maker/SmartTriage-IT.git
 cd SmartTriage-IT
-node -v
-npm -v
-npm ci
-npm run db:init
-npm run db:seed
-npm run check
-npm run dev
+npm ci --ignore-scripts
 ```
 
-Visita http://localhost:5173 (React) y http://localhost:3000/api/health (Express). Si `npm ci` falla por el lockfile o por SQLite, envía el error exacto al integrador; no alteres dependencias de forma individual.
+Cuando termine la instalación, ejecuta `npm run dev:demo` y abre [SmartTriage IT](http://127.0.0.1:5173). El arranque prepara la base aislada con 40 tickets. Para volver a abrir la demo, ejecuta `npm run dev:demo`.
+
+Para validar cambios de código, ejecuta `npm run check`. Para preparar una base de trabajo aparte, sigue los pasos del [README](../README.md#desarrollo-con-la-base-de-trabajo).
 
 **Cuentas solo de demo:** `admin`, `agente`, `tecnico1`–`tecnico4`; contraseña temporal `Cambiar123!` (según README actual). No utilizar en producción.
 
@@ -57,5 +53,3 @@ Adapta `git add` a los archivos realmente modificados; no hagas un `git add .` s
 
 ## 5. Cómo reportar problemas
 Incluye Issue, rama, comando ejecutado, error completo, salida de `node -v` y `git status`. No envíes solo 'no funciona'. Nunca compartas tokens, archivos `.env` ni datos privados.
-
-**Estado de partida:** el repositorio contiene el esqueleto React/Express/SQLite y contratos, pero no necesariamente las funcionalidades del MVP. No asumir que la aplicación está terminada porque el entorno arranca.
