@@ -1,5 +1,7 @@
 import type Database from 'better-sqlite3';
-import { db as conexionPredeterminada } from '../../db/connection';
+function obtenerConexionPredeterminada(): Database.Database {
+  return (require('../../db/connection') as typeof import('../../db/connection')).db;
+}
 
 export type ImpactoTicket = 'Alto' | 'Medio' | 'Bajo';
 export type UrgenciaTicket = 'Alta' | 'Media' | 'Baja';
@@ -171,7 +173,7 @@ export function registrarHistorial(
   accion: string,
   anterior: string | null,
   nuevo: string | null,
-  conexion: Database.Database = conexionPredeterminada,
+  conexion: Database.Database = obtenerConexionPredeterminada(),
 ): number {
   const resultado = conexion.prepare(`
     INSERT INTO historial (ticket_id, usuario_id, accion, valor_anterior, valor_nuevo)
@@ -185,7 +187,7 @@ export function cambiarEstadoTicket(
   estadoNuevo: EstadoTicket,
   usuario: UsuarioTicket,
   motivo: string | undefined,
-  conexion: Database.Database = conexionPredeterminada,
+  conexion: Database.Database = obtenerConexionPredeterminada(),
 ): ResultadoCambioEstado {
   const transaccion = conexion.transaction(() => {
     const ticket = conexion.prepare('SELECT estado, tecnico_id FROM tickets WHERE id = ?').get(ticketId) as
@@ -220,7 +222,7 @@ export function cambiarEstadoTicket(
 export function crearTicket(
   datos: DatosTicket,
   usuarioId: number,
-  conexion: Database.Database = conexionPredeterminada,
+  conexion: Database.Database = obtenerConexionPredeterminada(),
   sugerencia: SugerenciaTicket | null = null,
 ): number {
   const resultado = conexion.prepare(

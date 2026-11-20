@@ -4,30 +4,34 @@ Prototipo académico de mesa de ayuda y triaje de incidentes. **No es TI SmartDe
 ## Requisitos
 Node.js 22.12+ o 24 LTS, npm, Git. Para menor fricción use Node 24 LTS.
 
-## Iniciar en Windows / PowerShell
+## Demo para la entrega
+Desde la raíz del repositorio en la rama `main`, instala las dependencias la primera vez:
+
 ```powershell
-npm install
-npm run db:init
-npm run db:seed
-npm run dev
+npm ci
 ```
-- Frontend: http://localhost:5173
-- API health: http://localhost:3000/api/health
-- Datos de demostración: `admin`, `agente`, `tecnico1`–`tecnico4` / clave temporal `Cambiar123!` (**solo desarrollo**, cambiar antes de uso real).
 
-La aplicación incluye autenticación por sesión, triaje, tickets e interfaces de administración. Las escrituras de Tickets requieren sesión y token CSRF de AUTH-05.
-Los comandos convencionales `db:init` y `db:seed` usan `DB_FILE` o `data/smarttriage.db`; no los ejecutes sobre una base existente sin autorización explícita.
+Para abrir la demo, ejecuta:
 
-## Base de demostración aislada
-`npm run db:seed:demo` crea `data/demo/smarttriage-demo.db`, una base separada de `data/smarttriage.db`, con 40 tickets de ejemplo, transiciones e historial, y decisiones registradas. El comando solo crea esa base si no existe; ante una base preexistente que no esté marcada como su propia salida, se detiene sin modificarla. Las ejecuciones posteriores validan y resumen el seed existente sin insertar ni actualizar registros.
-
-Para iniciar la aplicación usando esa base en PowerShell:
 ```powershell
-npm run db:seed:demo
-$env:DB_FILE = (Join-Path $PWD 'data\demo\smarttriage-demo.db')
-npm run dev
+npm run dev:demo
 ```
-Para volver a la base predeterminada, elimina la variable con `Remove-Item Env:DB_FILE`. En la base de demostración se usan las cuentas `admin`, `agente`, `tecnico1`–`tecnico4` con clave temporal `Cambiar123!`; son solo para demostración local.
+
+Abre [SmartTriage IT](http://127.0.0.1:5173). Si los puertos 5173 o 3000 están ocupados, detén la otra instancia de SmartTriage antes de arrancar la demo.
+
+| Usuario | Qué puedes revisar |
+| --- | --- |
+| `admin` | Panel de métricas, catálogos y diccionario |
+| `agente` | Bandeja de tickets, registro y sugerencias de triaje |
+| `tecnico1` a `tecnico4` | Tickets asignados a cada técnico |
+
+La contraseña de todas las cuentas de demo es `Cambiar123!`. Usa estas cuentas en la demo local.
+
+El primer arranque genera `data/demo/smarttriage-demo.db` con 40 tickets ficticios, historial y decisiones de triaje. Los siguientes arranques reutilizan esa base y conservan tus cambios. Cada integrante tiene su propia copia local. La base de trabajo `data/smarttriage.db` queda aislada.
+
+## Desarrollo con la base de trabajo
+
+`npm run dev` sigue usando `DB_FILE` o `data/smarttriage.db`. Para preparar una base de trabajo nueva, usa `npm run db:init` y `npm run db:seed` antes de arrancar. Las escrituras de Tickets requieren sesión y token CSRF de AUTH-05.
 
 ## Estructura
 - `frontend/src/modules/`: auth / tickets / triaje / admin.

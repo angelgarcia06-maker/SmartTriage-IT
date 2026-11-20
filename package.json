@@ -8,6 +8,7 @@
   ],
   "scripts": {
     "dev": "concurrently -k \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "dev:demo": "node scripts/dev-demo.js",
     "build": "npm run build -w backend && npm run build -w frontend",
     "test": "npm run test -w backend",
     "db:init": "npm run db:init -w backend",
@@ -20,7 +21,7 @@
     "typescript": "^5.8.3"
   },
   "allowScripts": {
-    "better-sqlite3@11.10.0": true,
+    "better-sqlite3@13.0.3": true,
     "sqlite3@5.1.7": true,
     "esbuild@0.28.2": true,
     "esbuild@0.25.12": true

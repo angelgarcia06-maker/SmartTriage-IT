@@ -282,6 +282,10 @@ function ejecutar(): void {
       if (leerMarca(soloLectura) !== marcaDemo) {
         throw new Error(`Se rechazó la ruta existente ${rutaBaseDemo}: no está marcada como base de demostración de SmartTriage.`);
       }
+      if (process.argv.includes('--reusar')) {
+        console.log('Se usará la base de demostración existente con los cambios guardados.');
+        return;
+      }
       const resultado = resumen(soloLectura);
       validarResumen(resultado);
       console.log('La base de demostración ya contiene el seed esperado; no se modificó ningún registro.');
