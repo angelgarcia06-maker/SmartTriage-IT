@@ -66,6 +66,7 @@ export interface TicketDetalle extends TicketResumen {
   descripcion: string;
   impacto: ImpactoTicket;
   urgencia: UrgenciaTicket;
+  resolucion: string | null;
 }
 
 export interface UsuarioTicket {
@@ -88,6 +89,13 @@ export interface ResultadoCambioEstado {
   ticket_id: number;
   estado: EstadoTicket;
   fecha: string;
+}
+
+export interface ResultadoAsignacionTicket {
+  ticket_id: number;
+  tecnico_id: number | null;
+  tecnico: string | null;
+  estado: EstadoTicket;
 }
 
 export class ErrorEstadoTicket extends Error {
@@ -226,7 +234,7 @@ export function obtenerTicket(
 ): TicketDetalle | undefined {
   const filtroTecnico = tecnicoId === undefined ? '' : ' AND t.tecnico_id = ?';
   const consulta = conexion.prepare(
-    `SELECT ${camposResumen}, t.solicitante, t.descripcion, t.impacto, t.urgencia
+    `SELECT ${camposResumen}, t.solicitante, t.descripcion, t.impacto, t.urgencia, t.resolucion
      ${joinsTicket} WHERE t.id = ?${filtroTecnico}`,
   );
   const resultado = tecnicoId === undefined
@@ -267,10 +275,11 @@ export function cambiarEstadoTicket(
   usuario: UsuarioTicket,
   motivo: string | undefined,
   conexion: Database.Database = obtenerConexionPredeterminada(),
+  notaResolucion?: string,
 ): ResultadoCambioEstado {
   const transaccion = conexion.transaction(() => {
-    const ticket = conexion.prepare('SELECT estado, tecnico_id FROM tickets WHERE id = ?').get(ticketId) as
-      { estado: EstadoTicket; tecnico_id: number | null } | undefined;
+    const ticket = conexion.prepare('SELECT estado, tecnico_id, resolucion FROM tickets WHERE id = ?').get(ticketId) as
+      { estado: EstadoTicket; tecnico_id: number | null; resolucion: string | null } | undefined;
     if (!ticket) throw new ErrorEstadoTicket(404, 'Ticket no encontrado.');
     if (!['agente', 'administrador', 'tecnico'].includes(usuario.rol)) {
       throw new ErrorEstadoTicket(403, 'No tienes permiso para cambiar el estado.');
@@ -278,23 +287,91 @@ export function cambiarEstadoTicket(
     if (usuario.rol === 'tecnico' && ticket.tecnico_id !== usuario.id) {
       throw new ErrorEstadoTicket(403, 'Solo puedes cambiar el estado de tickets asignados a ti.');
     }
+    if (estadoNuevo === 'Cerrado' && !['agente', 'administrador'].includes(usuario.rol)) {
+      throw new ErrorEstadoTicket(403, 'Solo un agente o administrador puede cerrar el ticket.');
+    }
 
     const reapertura = ticket.estado === 'Resuelto' && estadoNuevo === 'En proceso';
     const motivoLimpio = motivo?.trim();
     if (reapertura && !motivoLimpio) {
       throw new ErrorEstadoTicket(400, 'Indica el motivo para reabrir el ticket.');
     }
+    const resolucionLimpia = notaResolucion?.trim();
+    if (estadoNuevo === 'Resuelto' && !resolucionLimpia) {
+      throw new ErrorEstadoTicket(400, 'Describe la solución aplicada antes de marcar el ticket como resuelto.');
+    }
     if (!TRANSICIONES_ESTADO[ticket.estado].includes(estadoNuevo)) {
       throw new ErrorEstadoTicket(409, `Transición no permitida: ${ticket.estado} → ${estadoNuevo}.`);
     }
 
-    conexion.prepare('UPDATE tickets SET estado = ? WHERE id = ?').run(estadoNuevo, ticketId);
+    if (estadoNuevo === 'Resuelto') {
+      conexion.prepare('UPDATE tickets SET estado = ?, resolucion = ? WHERE id = ?').run(estadoNuevo, resolucionLimpia, ticketId);
+      registrarHistorial(ticketId, usuario.id, 'Solución registrada', ticket.resolucion, resolucionLimpia ?? null, conexion);
+    } else {
+      conexion.prepare('UPDATE tickets SET estado = ? WHERE id = ?').run(estadoNuevo, ticketId);
+    }
     const accion = reapertura ? `Reapertura: ${motivoLimpio}` : 'Cambio de estado';
     const historialId = registrarHistorial(ticketId, usuario.id, accion, ticket.estado, estadoNuevo, conexion);
     const registro = conexion.prepare('SELECT fecha FROM historial WHERE id = ?').get(historialId) as { fecha: string };
     return { ticket_id: ticketId, estado: estadoNuevo, fecha: registro.fecha };
   });
 
+  return transaccion.immediate();
+}
+
+export function actualizarAsignacionTicket(
+  ticketId: number,
+  tecnicoId: number | null,
+  usuario: UsuarioTicket,
+  conexion: Database.Database = obtenerConexionPredeterminada(),
+): ResultadoAsignacionTicket {
+  if (!['agente', 'administrador'].includes(usuario.rol)) {
+    throw new ErrorEstadoTicket(403, 'Solo un agente o administrador puede asignar técnicos.');
+  }
+  const transaccion = conexion.transaction(() => {
+    const ticket = conexion.prepare(`
+      SELECT t.estado, t.tecnico_id, t.grupo_final_id,
+             tecnico.nombre AS tecnico_anterior, grupo.nombre AS grupo_anterior
+      FROM tickets t
+      LEFT JOIN usuarios tecnico ON tecnico.id = t.tecnico_id
+      LEFT JOIN grupos grupo ON grupo.id = t.grupo_final_id
+      WHERE t.id = ?
+    `).get(ticketId) as
+      { estado: EstadoTicket; tecnico_id: number | null; grupo_final_id: number | null; tecnico_anterior: string | null; grupo_anterior: string | null } | undefined;
+    if (!ticket) throw new ErrorEstadoTicket(404, 'Ticket no encontrado.');
+
+    let tecnico: { id: number; nombre: string; grupo_id: number | null } | undefined;
+    if (tecnicoId !== null) {
+      tecnico = conexion.prepare(`
+        SELECT id, nombre, grupo_id FROM usuarios
+        WHERE id = ? AND rol = 'tecnico' AND activo = 1
+      `).get(tecnicoId) as typeof tecnico;
+      if (!tecnico) throw new ErrorEstadoTicket(400, 'Selecciona un técnico activo.');
+    }
+
+    const estadoNuevo: EstadoTicket = ticket.estado === 'Nuevo' && tecnicoId !== null
+      ? 'Asignado'
+      : ticket.estado === 'Asignado' && tecnicoId === null
+        ? 'Nuevo'
+        : ticket.estado;
+    const grupoNuevo = tecnicoId === null ? null : tecnico?.grupo_id ?? null;
+    if (ticket.tecnico_id === tecnicoId && ticket.grupo_final_id === grupoNuevo) {
+      return { ticket_id: ticketId, tecnico_id: tecnicoId, tecnico: tecnico?.nombre ?? null, estado: ticket.estado };
+    }
+    conexion.prepare('UPDATE tickets SET tecnico_id = ?, grupo_final_id = ?, estado = ? WHERE id = ?')
+      .run(tecnicoId, grupoNuevo, estadoNuevo, ticketId);
+    registrarHistorial(ticketId, usuario.id, 'Técnico asignado', ticket.tecnico_anterior, tecnico?.nombre ?? null, conexion);
+    if (ticket.grupo_final_id !== grupoNuevo) {
+      const nombreGrupoNuevo = grupoNuevo === null
+        ? null
+        : (conexion.prepare('SELECT nombre FROM grupos WHERE id = ?').get(grupoNuevo) as { nombre: string } | undefined)?.nombre ?? null;
+      registrarHistorial(ticketId, usuario.id, 'Grupo asignado', ticket.grupo_anterior, nombreGrupoNuevo, conexion);
+    }
+    if (ticket.estado !== estadoNuevo) {
+      registrarHistorial(ticketId, usuario.id, 'Cambio de estado', ticket.estado, estadoNuevo, conexion);
+    }
+    return { ticket_id: ticketId, tecnico_id: tecnicoId, tecnico: tecnico?.nombre ?? null, estado: estadoNuevo };
+  });
   return transaccion.immediate();
 }
 

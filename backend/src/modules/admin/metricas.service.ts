@@ -56,6 +56,29 @@ export interface MetricasDashboard {
   };
 }
 
+export interface RangoFechasDashboard {
+  fecha_desde?: string;
+  fecha_hasta?: string;
+}
+
+function construirFiltroFecha(rango: RangoFechasDashboard = {}) {
+  const condiciones: string[] = [];
+  const parametros: string[] = [];
+  if (rango.fecha_desde) {
+    condiciones.push('date(t.fecha_creacion) >= date(?)');
+    parametros.push(rango.fecha_desde);
+  }
+  if (rango.fecha_hasta) {
+    condiciones.push('date(t.fecha_creacion) <= date(?)');
+    parametros.push(rango.fecha_hasta);
+  }
+  return {
+    where: condiciones.length ? ` WHERE ${condiciones.join(' AND ')}` : '',
+    and: condiciones.length ? ` AND ${condiciones.join(' AND ')}` : '',
+    parametros,
+  };
+}
+
 function calcularPorcentaje(
   aceptadas: number,
   total: number
@@ -65,22 +88,24 @@ function calcularPorcentaje(
 }
 
 export function obtenerMetricas(
-  db: Database.Database
+  db: Database.Database,
+  rango: RangoFechasDashboard = {},
 ): MetricasDashboard {
+  const filtroFecha = construirFiltroFecha(rango);
 
   // Cantidad total de tickets
   const conteo = db.prepare(`
     SELECT COUNT(*) AS total
-    FROM tickets
-  `).get() as { total: number };
+    FROM tickets t${filtroFecha.where}
+  `).get(...filtroFecha.parametros) as { total: number };
 
   const resumenOperativo = db.prepare(`
     SELECT
       COALESCE(SUM(CASE WHEN estado IN ('Nuevo', 'Asignado', 'En proceso') THEN 1 ELSE 0 END), 0) AS abiertos,
       COALESCE(SUM(CASE WHEN estado IN ('Resuelto', 'Cerrado') THEN 1 ELSE 0 END), 0) AS resueltosYCerrados,
       COALESCE(SUM(CASE WHEN COALESCE(prioridad_final, prioridad_sugerida) = 'Crítica' THEN 1 ELSE 0 END), 0) AS criticos
-    FROM tickets
-  `).get() as {
+    FROM tickets t${filtroFecha.where}
+  `).get(...filtroFecha.parametros) as {
     abiertos: number;
     resueltosYCerrados: number;
     criticos: number;
@@ -96,8 +121,8 @@ export function obtenerMetricas(
             OR grupo_sugerido_id IS NOT NULL OR tecnico_sugerido_id IS NOT NULL)
         THEN 1 ELSE 0
       END), 0) AS pendientes
-    FROM tickets
-  `).get() as {
+    FROM tickets t${filtroFecha.where}
+  `).get(...filtroFecha.parametros) as {
     aceptadas: number;
     corregidas: number;
     pendientes: number;
@@ -110,10 +135,10 @@ export function obtenerMetricas(
       COUNT(*) AS total
     FROM tickets t
     LEFT JOIN usuarios u ON u.id = t.tecnico_id
-    WHERE t.estado IN ('Nuevo', 'Asignado', 'En proceso')
+    WHERE t.estado IN ('Nuevo', 'Asignado', 'En proceso')${filtroFecha.and}
     GROUP BY t.tecnico_id, u.nombre
     ORDER BY total DESC, nombre
-  `).all() as Array<{
+  `).all(...filtroFecha.parametros) as Array<{
     tecnico_id: number | null;
     nombre: string;
     total: number;
@@ -121,11 +146,11 @@ export function obtenerMetricas(
 
   // Tickets agrupados por estado
   const porEstado = db.prepare(`
-    SELECT estado AS nombre, COUNT(*) AS total
-    FROM tickets
-    GROUP BY estado
-    ORDER BY estado
-  `).all() as Conteo[];
+    SELECT t.estado AS nombre, COUNT(*) AS total
+    FROM tickets t${filtroFecha.where}
+    GROUP BY t.estado
+    ORDER BY t.estado
+  `).all(...filtroFecha.parametros) as Conteo[];
 
   // Categoría final si existe; de lo contrario, sugerida
   const porCategoria = db.prepare(`
@@ -141,10 +166,11 @@ export function obtenerMetricas(
       ON cf.id = t.categoria_final_id
     LEFT JOIN categorias cs
       ON cs.id = t.categoria_sugerida_id
+    ${filtroFecha.where}
     GROUP BY
       COALESCE(cf.nombre, cs.nombre, 'Sin categoría')
     ORDER BY total DESC, nombre
-  `).all() as Conteo[];
+  `).all(...filtroFecha.parametros) as Conteo[];
 
   // Prioridad final si existe; de lo contrario, sugerida
   const porPrioridad = db.prepare(`
@@ -155,7 +181,7 @@ export function obtenerMetricas(
         'Sin prioridad'
       ) AS nombre,
       COUNT(*) AS total
-    FROM tickets
+    FROM tickets t${filtroFecha.where}
     GROUP BY
       COALESCE(
         prioridad_final,
@@ -163,7 +189,7 @@ export function obtenerMetricas(
         'Sin prioridad'
       )
     ORDER BY total DESC, nombre
-  `).all() as Conteo[];
+  `).all(...filtroFecha.parametros) as Conteo[];
 
   // Aceptación global: solo decisiones confirmadas
   const global = db.prepare(`
@@ -175,9 +201,9 @@ export function obtenerMetricas(
           ELSE 0
         END
       ), 0) AS aceptadas
-    FROM tickets
-    WHERE ${CONDICION_DECISION_CONFIRMADA}
-  `).get() as {
+    FROM tickets t
+    WHERE ${CONDICION_DECISION_CONFIRMADA}${filtroFecha.and}
+  `).get(...filtroFecha.parametros) as {
     total: number;
     aceptadas: number;
   };
@@ -213,8 +239,8 @@ export function obtenerMetricas(
         SELECT 1 FROM correcciones c WHERE c.ticket_id = t.id AND c.campo = 'tecnico'
       ) THEN 1 ELSE 0 END), 0) AS tecnico
     FROM tickets t
-    WHERE ${CONDICION_DECISION_CONFIRMADA}
-  `).get() as {
+    WHERE ${CONDICION_DECISION_CONFIRMADA}${filtroFecha.and}
+  `).get(...filtroFecha.parametros) as {
     total: number;
     categoria: number;
     prioridad: number;
@@ -246,10 +272,10 @@ export function obtenerMetricas(
     FROM tickets t
     LEFT JOIN categorias c
       ON c.id = t.categoria_sugerida_id
-    WHERE ${CONDICION_DECISION_CONFIRMADA}
+    WHERE ${CONDICION_DECISION_CONFIRMADA}${filtroFecha.and}
     GROUP BY c.id, c.nombre
     ORDER BY total DESC, categoria
-  `).all() as Array<{
+  `).all(...filtroFecha.parametros) as Array<{
     categoria_id: number | null;
     categoria: string;
     total: number;

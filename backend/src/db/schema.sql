@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS tickets (
  grupo_sugerido_id INTEGER REFERENCES grupos(id), palabra_activadora TEXT,
  categoria_final_id INTEGER REFERENCES categorias(id), prioridad_final TEXT CHECK(prioridad_final IN ('Crítica','Alta','Media','Baja')),
  grupo_final_id INTEGER REFERENCES grupos(id), aceptada_sin_correccion INTEGER CHECK(aceptada_sin_correccion IN (0,1)),
+ resolucion TEXT,
  fecha_decision TEXT
 );
 CREATE TABLE IF NOT EXISTS historial (

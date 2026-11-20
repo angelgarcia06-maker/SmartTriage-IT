@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Plus, RefreshCw, Se
 import type { EstadoTicket, Prioridad } from '../../../../shared/types/triaje.types';
 import TicketCreateForm from './TicketCreateForm';
 import {
+  actualizarAsignacionTicket,
   actualizarEstadoTicket,
   listarTickets,
   obtenerHistorial,
@@ -96,6 +97,7 @@ interface ListadoProps {
 }
 
 function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }: ListadoProps) {
+  const { usuario } = useAuth();
   const [tickets, setTickets] = useState<TicketResumen[] | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -152,7 +154,7 @@ function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div className="d-flex align-items-center gap-2">
           <Ticket size={22} aria-hidden="true" />
-          <h2 id="lista-tickets-titulo" className="h4 mb-0">Tickets</h2>
+          <h2 id="lista-tickets-titulo" className="h4 mb-0">{usuario?.rol === 'tecnico' ? 'Mis tickets asignados' : 'Bandeja de tickets'}</h2>
           {!cargando && tickets && <span className="badge text-bg-light border">{total}</span>}
         </div>
         <div className="d-flex gap-2">
@@ -166,6 +168,7 @@ function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }
           )}
         </div>
       </div>
+      {usuario?.rol === 'tecnico' && <p className="text-body-secondary mb-3">Aquí aparecen los tickets asignados a tu cuenta. Abre uno para iniciar o actualizar la atención.</p>}
 
       <form className="feature-card mb-3" onSubmit={enviarFiltros}>
         <div className="row g-3 align-items-end">
@@ -324,6 +327,10 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
   const [error, setError] = useState('');
   const [errorEstado, setErrorEstado] = useState('');
   const [motivoReapertura, setMotivoReapertura] = useState('');
+  const [notaResolucion, setNotaResolucion] = useState('');
+  const [tecnicoSeleccionado, setTecnicoSeleccionado] = useState('');
+  const [guardandoAsignacion, setGuardandoAsignacion] = useState(false);
+  const [errorAsignacion, setErrorAsignacion] = useState('');
   const [actualizandoEstado, setActualizandoEstado] = useState(false);
   const [revision, setRevision] = useState(0);
 
@@ -342,7 +349,10 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
         const decisionResultado = resultados[2];
         const errores: string[] = [];
 
-        if (ticketResultado.status === 'fulfilled') setTicket(ticketResultado.value);
+        if (ticketResultado.status === 'fulfilled') {
+          setTicket(ticketResultado.value);
+          setTecnicoSeleccionado(ticketResultado.value.tecnico_id === null ? '' : String(ticketResultado.value.tecnico_id));
+        }
         else errores.push(ticketResultado.reason instanceof Error ? ticketResultado.reason.message : 'No se pudo cargar el ticket.');
 
         if (historialResultado.status === 'fulfilled') setHistorial(historialResultado.value);
@@ -360,18 +370,33 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
     return () => { vigente = false; };
     }, [id, revision, puedeConsultarCatalogos]);
 
-    async function cambiarEstado(estado: EstadoTicket, motivo?: string) {
+    async function cambiarEstado(estado: EstadoTicket, motivo?: string, resolucion?: string) {
       setActualizandoEstado(true);
       setErrorEstado('');
       try {
-        await actualizarEstadoTicket(id, estado, motivo);
+        await actualizarEstadoTicket(id, estado, motivo, resolucion);
         setMotivoReapertura('');
+        setNotaResolucion('');
         setRevision((actual) => actual + 1);
       } catch (err) {
         setErrorEstado(err instanceof Error ? err.message : 'No se pudo actualizar el estado.');
       } finally {
         setActualizandoEstado(false);
+      }
     }
+
+    async function guardarAsignacion(evento: FormEvent<HTMLFormElement>) {
+      evento.preventDefault();
+      setGuardandoAsignacion(true);
+      setErrorAsignacion('');
+      try {
+        await actualizarAsignacionTicket(id, tecnicoSeleccionado ? Number(tecnicoSeleccionado) : null);
+        setRevision((actual) => actual + 1);
+      } catch (err) {
+        setErrorAsignacion(err instanceof Error ? err.message : 'No se pudo guardar la asignación.');
+      } finally {
+        setGuardandoAsignacion(false);
+      }
     }
 
     function enviarReapertura(evento: FormEvent<HTMLFormElement>) {
@@ -400,15 +425,33 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
           <div className="feature-card">
             <dl className="row mb-0">
               <dt className="col-sm-3">Solicitante</dt><dd className="col-sm-9">{ticket.solicitante}</dd>
-              <dt className="col-sm-3">Categoría sugerida</dt><dd className="col-sm-9">{ticket.categoria_sugerida ?? 'Sin sugerencia'}</dd>
-              <dt className="col-sm-3">Prioridad sugerida</dt><dd className="col-sm-9">{ticket.prioridad_sugerida ?? 'Sin sugerencia'}</dd>
+              <dt className="col-sm-3">Categoría actual</dt><dd className="col-sm-9">{ticket.categoria_final ?? ticket.categoria_sugerida ?? 'Sin sugerencia'}</dd>
+              <dt className="col-sm-3">Prioridad actual</dt><dd className="col-sm-9">{ticket.prioridad_final ?? ticket.prioridad_sugerida ?? 'Sin sugerencia'}</dd>
               <dt className="col-sm-3">Técnico</dt><dd className="col-sm-9">{ticket.tecnico ?? 'Sin asignar'}</dd>
               <dt className="col-sm-3">Impacto</dt><dd className="col-sm-9">{ticket.impacto}</dd>
               <dt className="col-sm-3">Urgencia</dt><dd className="col-sm-9">{ticket.urgencia}</dd>
               <dt className="col-sm-3">Fecha de creación</dt><dd className="col-sm-9">{fechaLegible(ticket.fecha_creacion)}</dd>
               <dt className="col-sm-3">Descripción</dt><dd className="col-sm-9" style={{ whiteSpace: 'pre-wrap' }}>{ticket.descripcion}</dd>
+              {ticket.resolucion && <><dt className="col-sm-3">Última solución registrada</dt><dd className="col-sm-9" style={{ whiteSpace: 'pre-wrap' }}>{ticket.resolucion}</dd></>}
             </dl>
           </div>
+          {puedeConsultarCatalogos && catalogos && (
+            <form className="feature-card mt-3" onSubmit={(evento) => void guardarAsignacion(evento)}>
+              <h3 className="h6">Asignación del técnico</h3>
+              <p className="small text-body-secondary">El técnico asignado podrá ver este ticket y actualizar su atención.</p>
+              <div className="d-flex flex-column flex-sm-row gap-2">
+                <select className="form-select" aria-label="Técnico asignado" value={tecnicoSeleccionado}
+                  onChange={(evento) => setTecnicoSeleccionado(evento.target.value)}>
+                  <option value="">Sin asignar</option>
+                  {catalogos.tecnicos.map((tecnico) => <option key={tecnico.id} value={tecnico.id}>{tecnico.nombre}</option>)}
+                </select>
+                <button type="submit" className="btn btn-outline-primary text-nowrap" disabled={guardandoAsignacion || (tecnicoSeleccionado !== '' && Number(tecnicoSeleccionado) === ticket.tecnico_id)}>
+                  {guardandoAsignacion ? 'Guardando…' : 'Guardar asignación'}
+                </button>
+              </div>
+              {errorAsignacion && <div className="alert alert-danger mt-3 mb-0" role="alert">{errorAsignacion}</div>}
+            </form>
+          )}
           {decision && catalogos && decision.pendiente && puedeConsultarCatalogos && (
             <div className="mt-3">
               <PanelSugerencia
@@ -449,10 +492,21 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
           <section className="feature-card mt-3" aria-labelledby="estado-ticket-titulo">
             <h3 id="estado-ticket-titulo" className="h6">Estado del ticket</h3>
             {siguiente && puedeCambiarEstado && (
-              <button type="button" className="btn btn-primary" disabled={actualizandoEstado}
-                onClick={() => void cambiarEstado(siguiente.estado)}>
-                {actualizandoEstado ? 'Actualizando…' : siguiente.etiqueta}
-              </button>
+              siguiente.estado === 'Resuelto' ? (
+                <form onSubmit={(evento) => { evento.preventDefault(); void cambiarEstado('Resuelto', undefined, notaResolucion.trim()); }}>
+                  <label htmlFor="nota-resolucion" className="form-label">¿Qué solución aplicaste?</label>
+                  <textarea id="nota-resolucion" className="form-control mb-2" maxLength={5000} rows={3} required
+                    value={notaResolucion} onChange={(evento) => setNotaResolucion(evento.target.value)} />
+                  <button type="submit" className="btn btn-primary" disabled={actualizandoEstado || !notaResolucion.trim()}>
+                    {actualizandoEstado ? 'Guardando solución…' : 'Registrar solución y marcar resuelto'}
+                  </button>
+                </form>
+              ) : (siguiente.estado !== 'Cerrado' || usuario?.rol !== 'tecnico') && (
+                <button type="button" className="btn btn-primary" disabled={actualizandoEstado}
+                  onClick={() => void cambiarEstado(siguiente.estado)}>
+                  {actualizandoEstado ? 'Actualizando…' : siguiente.etiqueta}
+                </button>
+              )
             )}
             {ticket.estado === 'Cerrado' && <p className="mb-0">Ticket cerrado. No admite más cambios de estado.</p>}
             {ticket.estado === 'Resuelto' && puedeCambiarEstado && (

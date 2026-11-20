@@ -870,6 +870,28 @@ textarea.form-control {
   white-space: nowrap;
 }
 
+.dashboard-date-filter {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 220px)) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.dashboard-date-filter .form-label {
+  margin-bottom: 6px;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.dashboard-date-filter > p {
+  grid-column: 1 / -1;
+}
+
 .dashboard-kpis {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1406,6 +1428,10 @@ textarea.form-control {
   .dashboard-model-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 12px;
+  }
+
+  .dashboard-date-filter {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .dashboard-kpi {

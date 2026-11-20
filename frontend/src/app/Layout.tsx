@@ -78,6 +78,9 @@ export default function Layout() {
   }
 
   const etiquetaRol = usuario ? (ETIQUETA_ROL[usuario.rol] ?? usuario.rol) : '';
+  const tituloActual = ubicacion.pathname === '/tickets' && usuario?.rol === 'tecnico'
+    ? 'Mis tickets asignados'
+    : TITULOS[ubicacion.pathname] ?? 'SmartTriage IT';
 
   return (
     <div className="app-shell">
@@ -119,7 +122,7 @@ export default function Layout() {
           )}
           {usuario && (
             <NavLink to="/tickets" className={({ isActive }) => enlaceActivo(isActive)} onClick={() => setMenuAbierto(false)}>
-              <Ticket size={18} aria-hidden="true" /> Tickets
+              <Ticket size={18} aria-hidden="true" /> {usuario?.rol === 'tecnico' ? 'Mis tickets' : 'Tickets'}
             </NavLink>
           )}
         </nav>
@@ -177,7 +180,7 @@ export default function Layout() {
               {menuAbierto ? <X size={19} /> : <Menu size={19} />}
             </button>
             <div className="screen-heading" aria-live="polite">
-              <h1>{TITULOS[ubicacion.pathname] ?? 'SmartTriage IT'}</h1>
+              <h1>{tituloActual}</h1>
               <p>Plataforma de gestión de servicios TI</p>
             </div>
           </div>

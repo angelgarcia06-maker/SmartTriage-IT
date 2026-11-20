@@ -66,10 +66,13 @@ export interface MetricasDashboard {
 }
 
 // ADM-04: Consultar métricas desde el backend
-export async function obtenerMetricasDashboard():
+export async function obtenerMetricasDashboard(fechas: { fecha_desde?: string; fecha_hasta?: string } = {}):
   Promise<MetricasDashboard> {
-
-  const respuesta = await fetch('/api/admin/metricas', {
+  const parametros = new URLSearchParams();
+  if (fechas.fecha_desde) parametros.set('fecha_desde', fechas.fecha_desde);
+  if (fechas.fecha_hasta) parametros.set('fecha_hasta', fechas.fecha_hasta);
+  const query = parametros.toString();
+  const respuesta = await fetch(`/api/admin/metricas${query ? `?${query}` : ''}`, {
     method: 'GET',
     credentials: 'same-origin',
     headers: {
