@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import type { Impacto, SugerenciaTriaje, Urgencia } from '../../../../shared/types/triaje.types';
-import { obtenerCatalogos, pedirSugerencia } from './api';
+import { obtenerCatalogos, pedirSugerencia, pedirSugerenciaMl, type ResultadoSugerenciaMl } from './api';
 import { PanelSugerencia, type CatalogosTriaje } from './PanelSugerencia';
 
 const IMPACTOS: Impacto[] = ['Alto', 'Medio', 'Bajo'];
@@ -20,6 +20,7 @@ export default function TriajePage() {
   const [impacto, setImpacto] = useState<Impacto>('Medio');
   const [urgencia, setUrgencia] = useState<Urgencia>('Media');
   const [sugerencia, setSugerencia] = useState<SugerenciaTriaje | null>(null);
+  const [sugerenciaMl, setSugerenciaMl] = useState<ResultadoSugerenciaMl | null>(null);
   const [catalogos, setCatalogos] = useState<CatalogosTriaje | null>(null);
   const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
   const [error, setError] = useState('');
@@ -37,9 +38,16 @@ export default function TriajePage() {
     e.preventDefault();
     setError('');
     setSugerencia(null);
+    setSugerenciaMl(null);
     setEnviando(true);
     try {
-      setSugerencia(await pedirSugerencia({ titulo, descripcion, impacto, urgencia }));
+      const datos = { titulo, descripcion, impacto, urgencia };
+      const [resultadoReglas, resultadoMl] = await Promise.all([
+        pedirSugerencia(datos),
+        pedirSugerenciaMl(datos),
+      ]);
+      setSugerencia(resultadoReglas);
+      setSugerenciaMl(resultadoMl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo obtener la sugerencia.');
     } finally {
@@ -113,6 +121,21 @@ export default function TriajePage() {
             catalogos={catalogos}
           />
         </>
+      )}
+      {sugerenciaMl && (
+        <section className="feature-card mt-4" aria-labelledby="triaje-ml-titulo">
+          <h2 id="triaje-ml-titulo" className="h5">Clasificador experimental de Machine Learning</h2>
+          <p>Modelo Naive Bayes entrenado con {sugerenciaMl.ejemplos_entrenamiento} decisiones de categoría confirmadas.</p>
+          {sugerenciaMl.disponible && sugerenciaMl.prediccion ? (
+            <dl className="row mb-2">
+              <dt className="col-sm-4">Categoría sugerida por el modelo</dt>
+              <dd className="col-sm-8">{sugerenciaMl.prediccion.categoria}</dd>
+              <dt className="col-sm-4">Confianza estimada</dt>
+              <dd className="col-sm-8">{sugerenciaMl.prediccion.confianza}%</dd>
+            </dl>
+          ) : <p className="mb-2">{sugerenciaMl.motivo}</p>}
+          <p className="small text-body-secondary mb-0">La confianza es una estimación del modelo, no una medición de su precisión. El resultado no modifica ni guarda tickets.</p>
+        </section>
       )}
     </div>
   );

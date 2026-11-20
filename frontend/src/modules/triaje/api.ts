@@ -10,6 +10,13 @@ export interface ResultadoDecision {
   fecha_decision: string;
 }
 
+export interface ResultadoSugerenciaMl {
+  disponible: boolean;
+  motivo: string | null;
+  ejemplos_entrenamiento: number;
+  prediccion: { categoria_id: number; categoria: string; confianza: number } | null;
+}
+
 export interface DetalleDecisionTicket {
   ticket_id: number;
   pendiente: boolean;
@@ -58,6 +65,13 @@ export function obtenerCatalogos(): Promise<CatalogosTriaje> {
 /** POST /api/triaje/sugerir — lo usa el formulario de TICK-01 antes de guardar. */
 export function pedirSugerencia(ticket: Pick<DatosTicket, 'titulo' | 'descripcion' | 'impacto' | 'urgencia'>): Promise<SugerenciaTriaje> {
   return enviar(API.triaje.suggest, ticket);
+}
+
+/** Sugerencia experimental de categoría entrenada con decisiones humanas confirmadas. */
+export function pedirSugerenciaMl(
+  ticket: Pick<DatosTicket, 'titulo' | 'descripcion' | 'impacto' | 'urgencia'>,
+): Promise<ResultadoSugerenciaMl> {
+  return enviar(API.triaje.suggestMl, ticket);
 }
 
 /** GET /api/tickets/:id/decision — recupera la sugerencia original y su decisión confirmada. */

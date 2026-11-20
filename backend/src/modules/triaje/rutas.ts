@@ -6,6 +6,7 @@ import { roleRequired, usuarioDeRequest } from '../auth/auth.middleware';
 import type { RolAuth } from '../auth/auth.types';
 import { ErrorDecision, obtenerDetalleDecision, registrarDecision } from './decision';
 import { sugerir } from './sugerir';
+import { clasificarConNaiveBayes } from './ml-clasificador';
 import { obtenerTicket } from '../tickets/tickets.service';
 
 const esquemaSugerir = z.object({
@@ -68,6 +69,16 @@ export function crearRutasTriaje(opciones: OpcionesRutasTriaje = {}): Router {
     }
     const { titulo, descripcion, impacto, urgencia } = datos.data;
     res.json(sugerir({ titulo, descripcion, impacto, urgencia }, bd()));
+  });
+
+  router.post('/triaje/sugerir-ml', requiereRol('agente', 'administrador'), protegerEscrituras, (req, res) => {
+    const datos = esquemaSugerir.safeParse(req.body);
+    if (!datos.success) {
+      res.status(400).json({ message: 'Datos inválidos.', errores: datos.error.flatten().fieldErrors });
+      return;
+    }
+    const texto = [datos.data.titulo, datos.data.descripcion].filter(Boolean).join(' ');
+    res.json(clasificarConNaiveBayes(texto, bd()));
   });
 
   router.get('/tickets/:id/decision', requiereRol('agente', 'administrador', 'tecnico'), (req, res) => {

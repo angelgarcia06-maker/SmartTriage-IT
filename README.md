@@ -25,5 +25,8 @@ El primer arranque genera una base local con 40 tickets ficticios, historial y d
 - La bandeja permite buscar y filtrar incidencias por la categoría y prioridad finales cuando ya fueron confirmadas. El detalle conserva también la sugerencia original. Los tickets se muestran en páginas de 10.
 - El detalle presenta la sugerencia original, la decisión final y el historial. Los técnicos pueden consultar los tickets asignados.
 - El panel de administración muestra la carga abierta por técnico y las decisiones de triaje aceptadas, corregidas y pendientes.
+- La página Triaje compara las reglas actuales con un clasificador experimental Naive Bayes, entrenado con decisiones humanas confirmadas. La confianza mostrada no equivale a precisión validada.
+
+El modelo es una demostración inicial. Los ejemplos de la base demo son ficticios, por lo que su resultado no representa desempeño con incidencias reales. Para evaluar calidad se necesita recopilar más decisiones revisadas y medir el modelo con ejemplos que no se usaron durante el entrenamiento.
 
 La bandeja permite buscar y filtrar incidencias y las muestra en páginas de 10. El detalle incluye la sugerencia, la decisión y el historial. El Dashboard administrativo presenta métricas de tickets y decisiones de triaje.
