@@ -266,10 +266,10 @@ function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }
                     <td>#{ticket.id}</td>
                     <th scope="row" className="fw-medium">{ticket.titulo}</th>
                     <td><span className={`badge ${COLOR_ESTADO[ticket.estado]}`}>{ticket.estado}</span></td>
-                    <td>{ticket.categoria_sugerida ?? 'Sin sugerencia'}</td>
+                    <td>{ticket.categoria ?? 'Sin sugerencia'}</td>
                     <td>
-                      {ticket.prioridad_sugerida
-                        ? <span className={`badge ${COLOR_PRIORIDAD[ticket.prioridad_sugerida]}`}>{ticket.prioridad_sugerida}</span>
+                      {ticket.prioridad
+                        ? <span className={`badge ${COLOR_PRIORIDAD[ticket.prioridad]}`}>{ticket.prioridad}</span>
                         : '—'}
                     </td>
                     <td>{ticket.tecnico ?? 'Sin asignar'}</td>

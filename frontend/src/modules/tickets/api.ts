@@ -14,6 +14,12 @@ export interface TicketResumen {
   categoria_sugerida_id: number | null;
   categoria_sugerida: string | null;
   prioridad_sugerida: Prioridad | null;
+  categoria_final_id: number | null;
+  categoria_final: string | null;
+  prioridad_final: Prioridad | null;
+  categoria_id: number | null;
+  categoria: string | null;
+  prioridad: Prioridad | null;
   tecnico_id: number | null;
   tecnico: string | null;
   fecha_creacion: string;

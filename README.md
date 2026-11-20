@@ -22,7 +22,7 @@ El primer arranque genera una base local con 40 tickets ficticios, historial y d
 
 ## Funciones de la aplicación
 
-- La bandeja permite buscar y filtrar incidencias y las muestra en páginas de 10 tickets.
+- La bandeja permite buscar y filtrar incidencias por la categoría y prioridad finales cuando ya fueron confirmadas. El detalle conserva también la sugerencia original. Los tickets se muestran en páginas de 10.
 - El detalle presenta la sugerencia original, la decisión final y el historial. Los técnicos pueden consultar los tickets asignados.
 - El panel de administración muestra la carga abierta por técnico y las decisiones de triaje aceptadas, corregidas y pendientes.
 

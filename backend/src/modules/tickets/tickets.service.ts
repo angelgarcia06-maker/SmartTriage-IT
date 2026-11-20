@@ -32,6 +32,12 @@ export interface TicketResumen {
   categoria_sugerida_id: number | null;
   categoria_sugerida: string | null;
   prioridad_sugerida: string | null;
+  categoria_final_id: number | null;
+  categoria_final: string | null;
+  prioridad_final: string | null;
+  categoria_id: number | null;
+  categoria: string | null;
+  prioridad: string | null;
   tecnico_id: number | null;
   tecnico: string | null;
   fecha_creacion: string;
@@ -101,13 +107,20 @@ const TRANSICIONES_ESTADO: Record<EstadoTicket, readonly EstadoTicket[]> = {
 
 const joinsTicket = `
   FROM tickets t
-  LEFT JOIN categorias c ON c.id = t.categoria_sugerida_id
+  LEFT JOIN categorias cs ON cs.id = t.categoria_sugerida_id
+  LEFT JOIN categorias cf ON cf.id = t.categoria_final_id
   LEFT JOIN usuarios tecnico ON tecnico.id = t.tecnico_id`;
 const camposResumen = `
   t.id, t.titulo, t.estado,
   t.categoria_sugerida_id,
-  c.nombre AS categoria_sugerida,
+  cs.nombre AS categoria_sugerida,
   t.prioridad_sugerida,
+  t.categoria_final_id,
+  cf.nombre AS categoria_final,
+  t.prioridad_final,
+  COALESCE(t.categoria_final_id, t.categoria_sugerida_id) AS categoria_id,
+  COALESCE(cf.nombre, cs.nombre) AS categoria,
+  COALESCE(t.prioridad_final, t.prioridad_sugerida) AS prioridad,
   t.tecnico_id,
   tecnico.nombre AS tecnico,
   t.fecha_creacion`;
@@ -132,11 +145,11 @@ function construirCondiciones(
     parametros.push(filtros.estado);
   }
   if (filtros.categoriaId !== undefined) {
-    condiciones.push('t.categoria_sugerida_id = ?');
+    condiciones.push('COALESCE(t.categoria_final_id, t.categoria_sugerida_id) = ?');
     parametros.push(filtros.categoriaId);
   }
   if (filtros.prioridad !== undefined) {
-    condiciones.push('t.prioridad_sugerida = ?');
+    condiciones.push('COALESCE(t.prioridad_final, t.prioridad_sugerida) = ?');
     parametros.push(filtros.prioridad);
   }
   if (filtros.tecnicoId !== undefined) {
@@ -178,20 +191,20 @@ export function listarTicketsPaginado(
     LIMIT ? OFFSET ?
   `).all(...parametros, limite, (pagina - 1) * limite) as TicketResumen[];
 
-  const filtroTecnico = tecnicoSesionId === undefined ? '' : ' WHERE t.tecnico_id = ?';
   const parametrosTecnico = tecnicoSesionId === undefined ? [] : [tecnicoSesionId];
   const categorias = conexion.prepare(`
-    SELECT DISTINCT c.id, c.nombre
+    SELECT DISTINCT COALESCE(cf.id, cs.id) AS id, COALESCE(cf.nombre, cs.nombre) AS nombre
     FROM tickets t
-    JOIN categorias c ON c.id = t.categoria_sugerida_id
-    ${filtroTecnico}
-    ORDER BY c.nombre
+    LEFT JOIN categorias cs ON cs.id = t.categoria_sugerida_id
+    LEFT JOIN categorias cf ON cf.id = t.categoria_final_id
+    WHERE COALESCE(cf.id, cs.id) IS NOT NULL${tecnicoSesionId === undefined ? '' : ' AND t.tecnico_id = ?'}
+    ORDER BY nombre
   `).all(...parametrosTecnico) as Array<{ id: number; nombre: string }>;
   const tecnicos = conexion.prepare(`
     SELECT DISTINCT u.id, u.nombre
     FROM tickets t
     JOIN usuarios u ON u.id = t.tecnico_id
-    ${filtroTecnico}
+    ${tecnicoSesionId === undefined ? '' : ' WHERE t.tecnico_id = ?'}
     ORDER BY u.nombre
   `).all(...parametrosTecnico) as Array<{ id: number; nombre: string }>;
 
