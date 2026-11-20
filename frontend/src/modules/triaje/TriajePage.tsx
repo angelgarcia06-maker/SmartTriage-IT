@@ -129,11 +129,11 @@ export default function TriajePage() {
                 </article>
                 <article className="col-md-6">
                   <div className="h-100 rounded border p-3">
-                    <span className="badge text-bg-info mb-2">Naive Bayes experimental</span>
+                    <span className="badge text-bg-info mb-2">Aprende de tickets anteriores</span>
                     {sugerenciaMl.disponible && sugerenciaMl.prediccion ? (
                       <>
                         <h3 className="h6">{sugerenciaMl.prediccion.categoria}</h3>
-                        <p className="small mb-2">Preferencia estimada: {sugerenciaMl.prediccion.confianza}%</p>
+                        <p className="small mb-2">Puntuación estimada para esta categoría: {sugerenciaMl.prediccion.confianza}%</p>
                         <p className="small mb-0">Términos que favorecieron esta categoría: {sugerenciaMl.prediccion.evidencias.length
                           ? sugerenciaMl.prediccion.evidencias.map((palabra) => <code key={palabra} className="me-1">{palabra}</code>)
                           : 'el modelo no encontró términos conocidos que la distingan.'}</p>
@@ -149,6 +149,11 @@ export default function TriajePage() {
                     : `Los métodos discrepan: reglas → «${sugerencia.categoria}»; Naive Bayes → «${sugerenciaMl.prediccion.categoria}».`}
                 </div>
               )}
+              <details className="small mt-3">
+                <summary>¿Cómo funciona esta sugerencia?</summary>
+                <p className="mt-2 mb-1">Compara las palabras del reporte con tickets cuya categoría ya confirmó una persona y propone la categoría con términos más parecidos.</p>
+                <p className="text-body-secondary mb-0">El porcentaje es una puntuación interna, no significa que acertará ese porcentaje de veces. El método usado se llama Naive Bayes.</p>
+              </details>
             </section>
           )}
           <h2 className="h5 mb-3">Vista previa de la sugerencia</h2>
@@ -162,17 +167,17 @@ export default function TriajePage() {
       )}
       {sugerenciaMl && (
         <section className="feature-card mt-4" aria-labelledby="triaje-ml-titulo">
-          <h2 id="triaje-ml-titulo" className="h5">Clasificador experimental de Machine Learning</h2>
-          <p>Modelo Naive Bayes entrenado con {sugerenciaMl.ejemplos_entrenamiento} decisiones de categoría confirmadas.</p>
+          <h2 id="triaje-ml-titulo" className="h5">Sugerencia basada en tickets revisados</h2>
+          <p>El sistema compara el reporte con {sugerenciaMl.ejemplos_entrenamiento} tickets cuya categoría confirmó un agente.</p>
           {sugerenciaMl.disponible && sugerenciaMl.prediccion ? (
             <dl className="row mb-2">
-              <dt className="col-sm-4">Categoría sugerida por el modelo</dt>
+              <dt className="col-sm-4">Categoría que más se parece</dt>
               <dd className="col-sm-8">{sugerenciaMl.prediccion.categoria}</dd>
-              <dt className="col-sm-4">Preferencia estimada del modelo</dt>
+              <dt className="col-sm-4">Puntuación del modelo</dt>
               <dd className="col-sm-8">{sugerenciaMl.prediccion.confianza}%</dd>
             </dl>
           ) : <p className="mb-2">{sugerenciaMl.motivo}</p>}
-          <p className="small text-body-secondary mb-0">La confianza es una estimación del modelo, no una medición de su precisión. El resultado no modifica ni guarda tickets.</p>
+          <p className="small text-body-secondary mb-0">El porcentaje es una puntuación interna, no una garantía de acierto. Esta sugerencia no modifica ni guarda tickets.</p>
         </section>
       )}
     </div>

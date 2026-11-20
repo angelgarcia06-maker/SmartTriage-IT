@@ -330,7 +330,7 @@ export function DashboardPanel() {
         <div className="dashboard-chart-heading">
           <div>
             <h2 id="comparacion-modelos-titulo">¿Cómo se comportan las recomendaciones?</h2>
-            <p>Compara la aceptación de las reglas con una evaluación experimental de Naive Bayes.</p>
+            <p>Revisa cuántas sugerencias aceptan los agentes y cuántas acierta el método que aprende de tickets anteriores.</p>
           </div>
           <span className="dashboard-chart-mark" aria-hidden="true"><BadgeCheck size={19} /></span>
         </div>
@@ -345,26 +345,26 @@ export function DashboardPanel() {
             <small>Es una tasa de aceptación humana, no una precisión estadística.</small>
           </article>
           <article className="dashboard-model-card is-ml">
-            <span className="dashboard-model-label">Naive Bayes · evaluación experimental</span>
+            <span className="dashboard-model-label">Aprendizaje con tickets anteriores</span>
             {comparacionTriaje.evaluacionMl.disponible ? (
               <>
                 <strong className="dashboard-model-score">{PORCENTAJE.format(comparacionTriaje.evaluacionMl.porcentaje ?? 0)}%</strong>
-                <p>Acertó {formatear(comparacionTriaje.evaluacionMl.aciertos)} de {formatear(comparacionTriaje.evaluacionMl.ejemplos)} categorías en validación cruzada.</p>
-                <div className="dashboard-model-track" role="img" aria-label={`Acierto Naive Bayes en validación cruzada: ${PORCENTAJE.format(comparacionTriaje.evaluacionMl.porcentaje ?? 0)} por ciento`}>
+                <p>Acertó {formatear(comparacionTriaje.evaluacionMl.aciertos)} de {formatear(comparacionTriaje.evaluacionMl.ejemplos)} categorías en la prueba.</p>
+                <div className="dashboard-model-track" role="img" aria-label={`Aciertos al probar tickets apartados: ${PORCENTAJE.format(comparacionTriaje.evaluacionMl.porcentaje ?? 0)} por ciento`}>
                   <span style={{ width: `${Math.max(0, Math.min(100, comparacionTriaje.evaluacionMl.porcentaje ?? 0))}%` }} />
                 </div>
-                <small>Cada ticket se predijo excluyéndolo del entrenamiento (dejar uno fuera).</small>
+                <small>Se probó cada ticket sin usarlo para aprender esa sugerencia.</small>
               </>
             ) : (
               <>
-                <strong className="dashboard-model-score is-pending">Aún sin validar</strong>
-                <p>{comparacionTriaje.evaluacionMl.motivo}</p>
-                <small>Las métricas aparecerán cuando haya suficientes decisiones confirmadas.</small>
+                <strong className="dashboard-model-score is-pending">Faltan ejemplos</strong>
+                <p>Se necesitan más tickets revisados y categorías con suficientes ejemplos para medir sus aciertos.</p>
+                <small>La sugerencia puede mostrarse antes; la medición aparecerá cuando haya datos suficientes.</small>
               </>
             )}
           </article>
         </div>
-        <p className="dashboard-footnote">Los porcentajes describen mediciones distintas y no deben compararse como si fueran la misma prueba. Las decisiones pendientes quedan fuera.</p>
+        <p className="dashboard-footnote">Un porcentaje cuenta sugerencias que los agentes aceptaron; el otro cuenta categorías acertadas al probar tickets apartados. Son medidas distintas. Las decisiones pendientes quedan fuera.</p>
       </section>
 
       {tickets.total === 0 && (

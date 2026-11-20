@@ -140,7 +140,7 @@ export function evaluarNaiveBayes(conexion: Database.Database): EvaluacionClasif
   if (ejemplos.length < MINIMO_EJEMPLOS + 1) {
     return {
       disponible: false,
-      motivo: `Se necesitan al menos ${MINIMO_EJEMPLOS + 1} decisiones confirmadas para separar cada ejemplo de su entrenamiento.`,
+      motivo: `Se necesitan al menos ${MINIMO_EJEMPLOS + 1} tickets con categoría confirmada para empezar a medir los aciertos con casos apartados.`,
       ejemplos: 0,
       aciertos: 0,
       porcentaje: null,
@@ -161,7 +161,7 @@ export function evaluarNaiveBayes(conexion: Database.Database): EvaluacionClasif
   if (evaluados === 0) {
     return {
       disponible: false,
-      motivo: 'No hay suficientes ejemplos por categoría para validar el modelo.',
+      motivo: 'Faltan tickets revisados en algunas categorías para medir los aciertos con casos apartados.',
       ejemplos: 0,
       aciertos: 0,
       porcentaje: null,

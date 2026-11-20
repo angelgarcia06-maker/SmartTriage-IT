@@ -24,9 +24,9 @@ El primer arranque genera una base local con 40 tickets ficticios, historial y d
 
 - La bandeja permite buscar y filtrar incidencias por la categoría y prioridad finales cuando ya fueron confirmadas. El detalle conserva también la sugerencia original. Los tickets se muestran en páginas de 10.
 - El detalle presenta la sugerencia original, la decisión final y el historial. Los técnicos pueden consultar los tickets asignados.
-- El panel de administración muestra la carga abierta por técnico, compara la aceptación de las reglas con una evaluación cruzada de Naive Bayes y separa las decisiones aceptadas, corregidas y pendientes.
-- La página Triaje compara lado a lado las reglas actuales y Naive Bayes, señala si coinciden y muestra términos del texto que favorecieron la predicción experimental.
+- El panel de administración muestra la carga por técnico y compara las sugerencias aceptadas con los aciertos obtenidos al probar el clasificador con tickets apartados.
+- La página Triaje compara la sugerencia por reglas con otra basada en tickets anteriores; muestra si coinciden y qué términos favorecieron cada categoría.
 
-Naive Bayes se evalúa con validación cruzada de dejar uno fuera: para cada decisión confirmada, se entrena excluyendo ese caso y se compara la predicción con la categoría final. Si no hay suficientes decisiones por categoría, el panel muestra que todavía no puede validarlo. Los ejemplos de la base demo son ficticios; los resultados solo describen ese conjunto y no representan desempeño con incidencias reales.
+El método aprende de las categorías finales confirmadas por agentes. Para medir sus aciertos, se prueba cada ticket sin usarlo para aprender esa sugerencia. Si faltan tickets revisados por categoría, el panel avisa que todavía no puede medirlo. Los ejemplos de la demo son ficticios y no representan el desempeño con incidencias reales. El nombre técnico del método es Naive Bayes.
 
 La bandeja permite buscar y filtrar incidencias y las muestra en páginas de 10. El detalle incluye la sugerencia, la decisión y el historial. El Dashboard administrativo presenta métricas de tickets y decisiones de triaje.
