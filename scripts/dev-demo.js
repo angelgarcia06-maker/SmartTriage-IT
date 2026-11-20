@@ -8,23 +8,30 @@ const databasePath = path.join(root, 'data', 'demo', 'smarttriage-demo.db');
 const seedEnv = { ...process.env };
 delete seedEnv.DB_FILE;
 
-const seed = spawnSync(process.execPath, [npmCli, '--workspace=backend', 'run', 'db:seed:demo', '--', '--reusar'], {
-  cwd: root,
-  env: seedEnv,
-  stdio: 'inherit',
-});
+function prepararBase(args, env) {
+  const resultado = spawnSync(process.execPath, [npmCli, '--workspace=backend', 'run', ...args], {
+    cwd: root,
+    env,
+    stdio: 'inherit',
+  });
 
-if (seed.error) console.error(seed.error.message);
-if (seed.status !== 0) process.exit(seed.status ?? 1);
+  if (resultado.error) console.error(resultado.error.message);
+  if (resultado.status !== 0) process.exit(resultado.status ?? 1);
+}
+
+const demoEnv = {
+  ...process.env,
+  DB_FILE: databasePath,
+  PORT: '3000',
+  SMARTTRIAGE_DEMO: '1',
+};
+
+prepararBase(['db:seed:demo', '--', '--reusar'], seedEnv);
+prepararBase(['db:init'], demoEnv);
 
 const server = spawn(process.execPath, [npmCli, 'run', 'dev'], {
   cwd: root,
-  env: {
-    ...process.env,
-    DB_FILE: databasePath,
-    PORT: '3000',
-    SMARTTRIAGE_DEMO: '1',
-  },
+  env: demoEnv,
   stdio: 'inherit',
 });
 

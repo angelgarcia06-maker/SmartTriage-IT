@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-11-13T22:13:42Z",
+  "generatedOnPlatform": "win32",
+  "projectType": "webapp",
+  "setup": [],
+  "assertions": [
+    {
+      "name": "project-check",
+      "kind": "process",
+      "command": "npm",
+      "args": ["run", "check"],
+      "verificationMethod": "exit-code",
+      "expected": "0",
+      "timeoutSeconds": 300
+    },
+    {
+      "name": "demo-seed-integrity",
+      "kind": "process",
+      "command": "npm",
+      "args": ["run", "db:seed:demo"],
+      "verificationMethod": "exit-code",
+      "expected": "0",
+      "timeoutSeconds": 120
+    },
+    {
+      "name": "git-diff-hygiene",
+      "kind": "process",
+      "command": "git",
+      "args": ["diff", "--check"],
+      "verificationMethod": "exit-code",
+      "expected": "0",
+      "timeoutSeconds": 30
+    },
+    {
+      "name": "demo-webapp-home",
+      "kind": "http-probe",
+      "startCommand": "npm",
+      "startArgs": ["run", "dev:demo"],
+      "url": "http://127.0.0.1:5173/",
+      "verificationMethod": "http-status",
+      "expected": "200",
+      "timeoutSeconds": 120
+    },
+    {
+      "name": "demo-api-health",
+      "kind": "http-probe",
+      "startCommand": "npm",
+      "startArgs": ["run", "dev:demo"],
+      "url": "http://127.0.0.1:3000/api/health",
+      "verificationMethod": "http-status",
+      "expected": "200",
+      "timeoutSeconds": 120
+    }
+  ]
+}

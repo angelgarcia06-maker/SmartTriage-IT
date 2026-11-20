@@ -1,0 +1,197 @@
+{
+  "planHash": "42ca7551112adc64db4f4523bfb4b7f6e6dda80a14b2d1ba41ed7ec41d11fbc0",
+  "phase": "standalone",
+  "recordedAtUtc": "2026-11-13T22:26:40.5492638Z",
+  "retryCount": 0,
+  "resetBaseline": false,
+  "complete": true,
+  "result": {
+    "setupSucceeded": true,
+    "setupDurationMs": 0,
+    "setupFailureOutput": null,
+    "assertions": [
+      {
+        "name": "project-check",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "npm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 check\r\n\u003E npm run build \u0026\u0026 npm run test\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 build\r\n\u003E npm run build -w backend \u0026\u0026 npm run build -w frontend\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E @smarttriage/backend@0.1.0 build\r\n\u003E tsc -p tsconfig.json\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E @smarttriage/frontend@0.1.0 build\r\n\u003E tsc -b \u0026\u0026 vite build\r\n\r\n\u001B[36mvite v6.4.5 \u001B[32mbuilding for production...\u001B[36m\u001B[39m\r\ntransforming...\r\n\u001B[32m\u2713\u001B[39m 1664 modules transformed.\r\nrendering chunks...\r\ncomputing gzip size...\r\n\u001B[2mdist/\u001B[22m\u001B[32mindex.html                 \u001B[39m\u001B[1m\u001B[2m  0.36 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:   0.26 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[35massets/index-DfUYNt9N.css  \u001B[39m\u001B[1m\u001B[2m243.36 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip:  34.04 kB\u001B[22m\r\n\u001B[2mdist/\u001B[22m\u001B[36massets/index-JYBaPIlc.js   \u001B[39m\u001B[1m\u001B[2m340.96 kB\u001B[22m\u001B[1m\u001B[22m\u001B[2m \u2502 gzip: 101.05 kB\u001B[22m\r\n\u001B[32m\u2713 built in 4.60s\u001B[39m\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 test\r\n\u003E npm run test -w backend\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E @smarttriage/backend@0.1.0 test\r\n\u003E vitest run\r\n\r\n\r\n\u001B[1m\u001B[46m RUN \u001B[49m\u001B[22m \u001B[36mv3.2.7 \u001B[39m\u001B[90mC:/Users/dell/Documents/GitHub/SmartTriage-IT/backend\u001B[39m\r\n\r\n\u001B[90mstdout\u001B[2m | src/modules/admin/admin.integration.test.ts\r\n\u001B[22m\u001B[39mDatos de demostraci\u00F3n preparados: :memory:\r\nCredenciales SOLO para desarrollo: admin / agente / tecnico1..4 | clave Cambiar123!\r\n\r\n\u001B[90mstdout\u001B[2m | src/modules/auth/auth.session.test.ts\r\n\u001B[22m\u001B[39mDatos de demostraci\u00F3n preparados: :memory:\r\nCredenciales SOLO para desarrollo: admin / agente / tecnico1..4 | clave Cambiar123!\r\n\r\n\u001B[90mstdout\u001B[2m | src/modules/auth/usuarios.test.ts\r\n\u001B[22m\u001B[39mDatos de demostraci\u00F3n preparados: :memory:\r\nCredenciales SOLO para desarrollo: admin / agente / tecnico1..4 | clave Cambiar123!\r\n\r\n\u001B[90mstdout\u001B[2m | src/modules/auth/auth.integration.test.ts\r\n\u001B[22m\u001B[39mDatos de demostraci\u00F3n preparados: :memory:\r\nCredenciales SOLO para desarrollo: admin / agente / tecnico1..4 | clave Cambiar123!\r\n\r\n\u001B[90mstdout\u001B[2m | src/modules/triaje/catalogos.test.ts\r\n\u001B[22m\u001B[39mDatos de demostraci\u00F3n preparados: :memory:\r\nCredenciales SOLO para desarrollo: admin / agente / tecnico1..4 | clave Cambiar123!\r\n\r\n\u001B[90mstdout\u001B[2m | src/modules/auth/auth.roles.test.ts\r\n\u001B[22m\u001B[39mDatos de demostraci\u00F3n preparados: :memory:\r\nCredenciales SOLO para desarrollo: admin / agente / tecnico1..4 | clave Cambiar123!\r\n\r\n\u001B[90mstdout\u001B[2m | src/modules/triaje/rutas.test.ts\r\n\u001B[22m\u001B[39mDatos de demostraci\u00F3n preparados: :memory:\r\nCredenciales SOLO para desarrollo: admin / agente / tecnico1..4 | clave Cambiar123!\r\n\r\n \u001B[32m\u2713\u001B[39m src/modules/triaje/catalogos.test.ts \u001B[2m(\u001B[22m\u001B[2m2 tests\u001B[22m\u001B[2m)\u001B[22m\u001B[33m 1335\u001B[2mms\u001B[22m\u001B[39m\r\n   \u001B[33m\u001B[2m\u2713\u001B[22m\u001B[39m GET /api/triaje/catalogos\u001B[2m \u003E \u001B[22mrequiere sesi\u00F3n y solo permite agentes o administradores \u001B[33m 990\u001B[2mms\u001B[22m\u001B[39m\r\n   \u001B[33m\u001B[2m\u2713\u001B[22m\u001B[39m GET /api/triaje/catalogos\u001B[2m \u003E \u001B[22mdevuelve los cat\u00E1logos activos de SQLite con los campos que consume PanelSugerencia \u001B[33m 342\u001B[2mms\u001B[22m\u001B[39m\r\n \u001B[32m\u2713\u001B[39m src/modules/auth/auth.roles.test.ts \u001B[2m(\u001B[22m\u001B[2m10 tests\u001B[22m\u001B[2m)\u001B[22m\u001B[33m 2062\u001B[2mms\u001B[22m\u001B[39m\r\n   \u001B[33m\u001B[2m\u2713\u001B[22m\u001B[39m AUTH-03: matriz de roles\u001B[2m \u003E \u001B[22madministrador: accede a admin y t\u00E9cnicos, no a agentes \u001B[33m 349\u001B[2mms\u001B[22m\u001B[39m\r\n   \u001B[33m\u001B[2m\u2713\u001B[22m\u001B[39m AUTH-03: /usuarios con el router completo\u001B[2m \u003E \u001B[22mun agente recibe 403 \u001B[33m 325\u001B[2mms\u001B[22m\u001B[39m\r\n \u001B[32m\u2713\u001B[39m src/modules/auth/auth.session.test.ts \u001B[2m(\u001B[22m\u001B[2m13 tests\u001B[22m\u001B[2m)\u001B[22m\u001B[33m 2648\u001B[2mms\u001B[22m\u001B[39m\r\n   \u001B[33m\u001B[2m\u2713\u001B[22m\u001B[39m AUTH-05: seguridad de sesiones y CSRF\n\u2026[truncated]",
+        "durationMs": 30982
+      },
+      {
+        "name": "demo-seed-integrity",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "npm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 db:seed:demo\r\n\u003E npm run db:seed:demo -w backend\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E @smarttriage/backend@0.1.0 db:seed:demo\r\n\u003E tsx src/db/seed.demo.ts\r\n\r\nLa base de demostraci\u00F3n ya contiene el seed esperado; no se modific\u00F3 ning\u00FAn registro.\r\n{\r\n  \u0022total\u0022: 40,\r\n  \u0022porEstado\u0022: [\r\n    {\r\n      \u0022nombre\u0022: \u0022Asignado\u0022,\r\n      \u0022total\u0022: 8\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Cerrado\u0022,\r\n      \u0022total\u0022: 5\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022En proceso\u0022,\r\n      \u0022total\u0022: 10\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Nuevo\u0022,\r\n      \u0022total\u0022: 8\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Resuelto\u0022,\r\n      \u0022total\u0022: 9\r\n    }\r\n  ],\r\n  \u0022decisiones\u0022: {\r\n    \u0022aceptadas\u0022: 25,\r\n    \u0022corregidas\u0022: 10,\r\n    \u0022pendientes\u0022: 5\r\n  },\r\n  \u0022historial\u0022: {\r\n    \u0022total\u0022: 110,\r\n    \u0022cambiosEstado\u0022: 75,\r\n    \u0022decisiones\u0022: 35\r\n  },\r\n  \u0022correcciones\u0022: 30,\r\n  \u0022integridad\u0022: \u0022ok\u0022,\r\n  \u0022metricasDashboard\u0022: {\r\n    \u0022tickets\u0022: {\r\n      \u0022total\u0022: 40,\r\n      \u0022porEstado\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Asignado\u0022,\r\n          \u0022total\u0022: 8\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Cerrado\u0022,\r\n          \u0022total\u0022: 5\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022En proceso\u0022,\r\n          \u0022total\u0022: 10\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Nuevo\u0022,\r\n          \u0022total\u0022: 8\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Resuelto\u0022,\r\n          \u0022total\u0022: 9\r\n        }\r\n      ],\r\n      \u0022porCategoria\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Hardware\u0022,\r\n          \u0022total\u0022: 18\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Red\u0022,\r\n          \u0022total\u0022: 7\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Software\u0022,\r\n          \u0022total\u0022: 6\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Otros\u0022,\r\n          \u0022total\u0022: 5\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Accesos\u0022,\r\n          \u0022total\u0022: 4\r\n        }\r\n      ],\r\n      \u0022porPrioridad\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Baja\u0022,\r\n          \u0022total\u0022: 26\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Cr\u00EDtica\u0022,\r\n          \u0022total\u0022: 14\r\n        }\r\n      ]\r\n    },\r\n    \u0022precision\u0022: {\r\n      \u0022global\u0022: {\r\n        \u0022total\u0022: 35,\r\n        \u0022aceptadas\u0022: 25,\r\n        \u0022porcentaje\u0022: 71.43\r\n      },\r\n      \u0022porCampo\u0022: [\r\n        {\r\n          \u0022campo\u0022: \u0022categoria\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022prioridad\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 35,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022grupo\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022tecnico\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        }\r\n      ],\r\n      \u0022porCategoriaSugerida\u0022: [\r\n        {\r\n          \u0022categoria_id\u0022: 4,\r\n          \u0022categoria\u0022: \u0022Accesos\u0022,\r\n          \u0022total\u0022: 8,\r\n          \u0022aceptadas\u0022: 4,\r\n          \u0022porcentaje\u0022: 50\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 1,\r\n          \u0022categoria\u0022: \u0022Hardware\u0022,\r\n          \u0022total\u0022: 8,\r\n          \u0022aceptadas\u0022: 8,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 3,\r\n          \u0022categoria\u0022: \u0022Red\u0022,\r\n          \u0022total\u0022: 7,\r\n          \u0022aceptadas\u0022: 7,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 5,\r\n          \u0022categoria\u0022: \u0022Correo\u0022,\r\n          \u0022total\u0022: 6,\r\n          \u0022aceptadas\u0022: 0,\r\n          \u0022porcentaje\u0022: 0\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 2,\r\n          \u0022categoria\u0022: \u0022Software\u0022,\r\n          \u0022total\u0022: 6,\r\n          \u0022aceptadas\u0022: 6,\r\n          \u0022porcentaje\u0022: 100\r\n        }\r\n      ]\r\n    }\r\n  }\r\n}\r\n",
+        "durationMs": 2180
+      },
+      {
+        "name": "git-diff-hygiene",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "",
+        "durationMs": 149
+      },
+      {
+        "name": "demo-webapp-home",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 200\n\u003C!doctype html\u003E\u003Chtml lang=\u0022es\u0022\u003E\u003Chead\u003E\n  \u003Cscript type=\u0022module\u0022\u003Eimport { injectIntoGlobalHook } from \u0022/@react-refresh\u0022;\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () =\u003E {};\nwindow.$RefreshSig$ = () =\u003E (type) =\u003E type;\u003C/script\u003E\n\n  \u003Cscript type=\u0022module\u0022 src=\u0022/@vite/client\u0022\u003E\u003C/script\u003E\n\u003Cmeta charset=\u0022UTF-8\u0022/\u003E\u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1.0\u0022/\u003E\u003Ctitle\u003ESmartTriage IT\u003C/title\u003E\u003C/head\u003E\u003Cbody\u003E\u003Cdiv id=\u0022root\u0022\u003E\u003C/div\u003E\u003Cscript type=\u0022module\u0022 src=\u0022/src/main.tsx\u0022\u003E\u003C/script\u003E\u003C/body\u003E\u003C/html\u003E\n--- server output ---\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 dev:demo\r\n\u003E node scripts/dev-demo.js\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 db:seed:demo\r\n\u003E npm run db:seed:demo -w backend\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E @smarttriage/backend@0.1.0 db:seed:demo\r\n\u003E tsx src/db/seed.demo.ts\r\n\r\nLa base de demostraci\u00F3n ya contiene el seed esperado; no se modific\u00F3 ning\u00FAn registro.\r\n{\r\n  \u0022total\u0022: 40,\r\n  \u0022porEstado\u0022: [\r\n    {\r\n      \u0022nombre\u0022: \u0022Asignado\u0022,\r\n      \u0022total\u0022: 8\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Cerrado\u0022,\r\n      \u0022total\u0022: 5\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022En proceso\u0022,\r\n      \u0022total\u0022: 10\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Nuevo\u0022,\r\n      \u0022total\u0022: 8\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Resuelto\u0022,\r\n      \u0022total\u0022: 9\r\n    }\r\n  ],\r\n  \u0022decisiones\u0022: {\r\n    \u0022aceptadas\u0022: 25,\r\n    \u0022corregidas\u0022: 10,\r\n    \u0022pendientes\u0022: 5\r\n  },\r\n  \u0022historial\u0022: {\r\n    \u0022total\u0022: 110,\r\n    \u0022cambiosEstado\u0022: 75,\r\n    \u0022decisiones\u0022: 35\r\n  },\r\n  \u0022correcciones\u0022: 30,\r\n  \u0022integridad\u0022: \u0022ok\u0022,\r\n  \u0022metricasDashboard\u0022: {\r\n    \u0022tickets\u0022: {\r\n      \u0022total\u0022: 40,\r\n      \u0022porEstado\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Asignado\u0022,\r\n          \u0022total\u0022: 8\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Cerrado\u0022,\r\n          \u0022total\u0022: 5\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022En proceso\u0022,\r\n          \u0022total\u0022: 10\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Nuevo\u0022,\r\n          \u0022total\u0022: 8\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Resuelto\u0022,\r\n          \u0022total\u0022: 9\r\n        }\r\n      ],\r\n      \u0022porCategoria\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Hardware\u0022,\r\n          \u0022total\u0022: 18\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Red\u0022,\r\n          \u0022total\u0022: 7\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Software\u0022,\r\n          \u0022total\u0022: 6\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Otros\u0022,\r\n          \u0022total\u0022: 5\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Accesos\u0022,\r\n          \u0022total\u0022: 4\r\n        }\r\n      ],\r\n      \u0022porPrioridad\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Baja\u0022,\r\n          \u0022total\u0022: 26\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Cr\u00EDtica\u0022,\r\n          \u0022total\u0022: 14\r\n        }\r\n      ]\r\n    },\r\n    \u0022precision\u0022: {\r\n      \u0022global\u0022: {\r\n        \u0022total\u0022: 35,\r\n        \u0022aceptadas\u0022: 25,\r\n        \u0022porcentaje\u0022: 71.43\r\n      },\r\n      \u0022porCampo\u0022: [\r\n        {\r\n          \u0022campo\u0022: \u0022categoria\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022prioridad\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 35,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022grupo\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022tecnico\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        }\r\n      ],\r\n      \u0022porCategoriaSugerida\u0022: [\r\n        {\r\n          \u0022categoria_id\u0022: 4,\r\n          \u0022categoria\u0022: \u0022Accesos\u0022,\r\n          \u0022total\u0022: 8,\r\n          \u0022aceptadas\u0022: 4,\r\n          \u0022porcentaje\u0022: 50\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 1,\r\n          \u0022categoria\u0022: \u0022Hardware\u0022,\r\n          \u0022total\u0022: 8,\r\n          \u0022aceptadas\u0022: 8,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 3,\r\n          \u0022categoria\u0022: \u0022Red\u0022,\r\n          \u0022total\u0022: 7,\r\n          \u0022aceptadas\u0022: 7,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n\n\u2026[truncated]",
+        "durationMs": 8391
+      },
+      {
+        "name": "demo-api-health",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 200\n{\u0022status\u0022:\u0022ok\u0022,\u0022application\u0022:\u0022SmartTriage IT\u0022,\u0022version\u0022:\u00220.1.0\u0022,\u0022database\u0022:\u0022SQLite conectada\u0022}\n--- server output ---\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 dev:demo\r\n\u003E node scripts/dev-demo.js\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E smarttriage-it@0.1.0 db:seed:demo\r\n\u003E npm run db:seed:demo -w backend\r\n\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This will stop working in the next major version of npm.\r\n\r\n\u003E @smarttriage/backend@0.1.0 db:seed:demo\r\n\u003E tsx src/db/seed.demo.ts\r\n\r\nLa base de demostraci\u00F3n ya contiene el seed esperado; no se modific\u00F3 ning\u00FAn registro.\r\n{\r\n  \u0022total\u0022: 40,\r\n  \u0022porEstado\u0022: [\r\n    {\r\n      \u0022nombre\u0022: \u0022Asignado\u0022,\r\n      \u0022total\u0022: 8\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Cerrado\u0022,\r\n      \u0022total\u0022: 5\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022En proceso\u0022,\r\n      \u0022total\u0022: 10\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Nuevo\u0022,\r\n      \u0022total\u0022: 8\r\n    },\r\n    {\r\n      \u0022nombre\u0022: \u0022Resuelto\u0022,\r\n      \u0022total\u0022: 9\r\n    }\r\n  ],\r\n  \u0022decisiones\u0022: {\r\n    \u0022aceptadas\u0022: 25,\r\n    \u0022corregidas\u0022: 10,\r\n    \u0022pendientes\u0022: 5\r\n  },\r\n  \u0022historial\u0022: {\r\n    \u0022total\u0022: 110,\r\n    \u0022cambiosEstado\u0022: 75,\r\n    \u0022decisiones\u0022: 35\r\n  },\r\n  \u0022correcciones\u0022: 30,\r\n  \u0022integridad\u0022: \u0022ok\u0022,\r\n  \u0022metricasDashboard\u0022: {\r\n    \u0022tickets\u0022: {\r\n      \u0022total\u0022: 40,\r\n      \u0022porEstado\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Asignado\u0022,\r\n          \u0022total\u0022: 8\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Cerrado\u0022,\r\n          \u0022total\u0022: 5\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022En proceso\u0022,\r\n          \u0022total\u0022: 10\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Nuevo\u0022,\r\n          \u0022total\u0022: 8\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Resuelto\u0022,\r\n          \u0022total\u0022: 9\r\n        }\r\n      ],\r\n      \u0022porCategoria\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Hardware\u0022,\r\n          \u0022total\u0022: 18\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Red\u0022,\r\n          \u0022total\u0022: 7\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Software\u0022,\r\n          \u0022total\u0022: 6\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Otros\u0022,\r\n          \u0022total\u0022: 5\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Accesos\u0022,\r\n          \u0022total\u0022: 4\r\n        }\r\n      ],\r\n      \u0022porPrioridad\u0022: [\r\n        {\r\n          \u0022nombre\u0022: \u0022Baja\u0022,\r\n          \u0022total\u0022: 26\r\n        },\r\n        {\r\n          \u0022nombre\u0022: \u0022Cr\u00EDtica\u0022,\r\n          \u0022total\u0022: 14\r\n        }\r\n      ]\r\n    },\r\n    \u0022precision\u0022: {\r\n      \u0022global\u0022: {\r\n        \u0022total\u0022: 35,\r\n        \u0022aceptadas\u0022: 25,\r\n        \u0022porcentaje\u0022: 71.43\r\n      },\r\n      \u0022porCampo\u0022: [\r\n        {\r\n          \u0022campo\u0022: \u0022categoria\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022prioridad\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 35,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022grupo\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        },\r\n        {\r\n          \u0022campo\u0022: \u0022tecnico\u0022,\r\n          \u0022total\u0022: 35,\r\n          \u0022aceptadas\u0022: 25,\r\n          \u0022porcentaje\u0022: 71.43\r\n        }\r\n      ],\r\n      \u0022porCategoriaSugerida\u0022: [\r\n        {\r\n          \u0022categoria_id\u0022: 4,\r\n          \u0022categoria\u0022: \u0022Accesos\u0022,\r\n          \u0022total\u0022: 8,\r\n          \u0022aceptadas\u0022: 4,\r\n          \u0022porcentaje\u0022: 50\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 1,\r\n          \u0022categoria\u0022: \u0022Hardware\u0022,\r\n          \u0022total\u0022: 8,\r\n          \u0022aceptadas\u0022: 8,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 3,\r\n          \u0022categoria\u0022: \u0022Red\u0022,\r\n          \u0022total\u0022: 7,\r\n          \u0022aceptadas\u0022: 7,\r\n          \u0022porcentaje\u0022: 100\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 5,\r\n          \u0022categoria\u0022: \u0022Correo\u0022,\r\n          \u0022total\u0022: 6,\r\n          \u0022aceptadas\u0022: 0,\r\n          \u0022porcentaje\u0022: 0\r\n        },\r\n        {\r\n          \u0022categoria_id\u0022: 2,\r\n          \u0022categoria\u0022: \u0022Software\u0022,\r\n          \u0022total\u0022: 6,\r\n          \u0022aceptadas\u0022: 6,\r\n          \u0022porcentaje\u0022: 100\r\n        }\r\n      ]\r\n    }\r\n  }\r\n}\r\nnpm warn Unknown env config \u0022scripts-prepend-node-path\u0022. This\n\u2026[truncated]",
+        "durationMs": 8488
+      }
+    ],
+    "executions": [
+      {
+        "source": "project-check",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "args": [
+          "run",
+          "check"
+        ],
+        "cwd": "C:\\Users\\dell\\Documents\\GitHub\\SmartTriage-IT",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32",
+        "nodeExecutable": "C:\\Program Files\\nodejs\\node.EXE",
+        "nodeVersion": "v24.13.0",
+        "packageManager": "npm",
+        "packageManagerExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "packageManagerVersion": "11.6.2",
+        "cleanup": {
+          "RootProcessId": 24476,
+          "Completed": true,
+          "ProcessesObserved": 67,
+          "ProcessesTerminated": 0,
+          "Failure": null
+        }
+      },
+      {
+        "source": "demo-seed-integrity",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "args": [
+          "run",
+          "db:seed:demo"
+        ],
+        "cwd": "C:\\Users\\dell\\Documents\\GitHub\\SmartTriage-IT",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32",
+        "nodeExecutable": "C:\\Program Files\\nodejs\\node.EXE",
+        "nodeVersion": "v24.13.0",
+        "packageManager": "npm",
+        "packageManagerExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "packageManagerVersion": "11.6.2",
+        "cleanup": {
+          "RootProcessId": 19304,
+          "Completed": true,
+          "ProcessesObserved": 12,
+          "ProcessesTerminated": 1,
+          "Failure": null
+        }
+      },
+      {
+        "source": "git-diff-hygiene",
+        "resolvedExecutable": "C:\\Program Files\\Git\\cmd\\git.EXE",
+        "args": [
+          "diff",
+          "--check"
+        ],
+        "cwd": "C:\\Users\\dell\\Documents\\GitHub\\SmartTriage-IT",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32",
+        "nodeExecutable": null,
+        "nodeVersion": null,
+        "packageManager": null,
+        "packageManagerExecutable": null,
+        "packageManagerVersion": null,
+        "cleanup": {
+          "RootProcessId": 16764,
+          "Completed": true,
+          "ProcessesObserved": 3,
+          "ProcessesTerminated": 1,
+          "Failure": null
+        }
+      },
+      {
+        "source": "demo-webapp-home",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "args": [
+          "run",
+          "dev:demo"
+        ],
+        "cwd": "C:\\Users\\dell\\Documents\\GitHub\\SmartTriage-IT",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32",
+        "nodeExecutable": "C:\\Program Files\\nodejs\\node.EXE",
+        "nodeVersion": "v24.13.0",
+        "packageManager": "npm",
+        "packageManagerExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "packageManagerVersion": "11.6.2",
+        "cleanup": {
+          "RootProcessId": 8040,
+          "Completed": true,
+          "ProcessesObserved": 55,
+          "ProcessesTerminated": 20,
+          "Failure": null
+        }
+      },
+      {
+        "source": "demo-api-health",
+        "resolvedExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "args": [
+          "run",
+          "dev:demo"
+        ],
+        "cwd": "C:\\Users\\dell\\Documents\\GitHub\\SmartTriage-IT",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32",
+        "nodeExecutable": "C:\\Program Files\\nodejs\\node.EXE",
+        "nodeVersion": "v24.13.0",
+        "packageManager": "npm",
+        "packageManagerExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
+        "packageManagerVersion": "11.6.2",
+        "cleanup": {
+          "RootProcessId": 12560,
+          "Completed": true,
+          "ProcessesObserved": 54,
+          "ProcessesTerminated": 20,
+          "Failure": null
+        }
+      }
+    ]
+  }
+}

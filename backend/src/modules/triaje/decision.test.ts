@@ -72,10 +72,11 @@ describe('registrarDecision — corregir', () => {
 
   it('conserva la sugerencia original en el ticket', () => {
     registrarDecision(ticket, { ...sugerida, categoria_final_id: idCategoria(bd, 'Software'), grupo_final_id: null, tecnico_id: null }, agente, bd);
-    expect(fila('SELECT categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id, palabra_activadora FROM tickets WHERE id = ?', ticket)).toEqual({
+    expect(fila('SELECT categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id, tecnico_sugerido_id, palabra_activadora FROM tickets WHERE id = ?', ticket)).toEqual({
       categoria_sugerida_id: idCategoria(bd, 'Red'),
       prioridad_sugerida: 'Crítica',
       grupo_sugerido_id: idGrupo(bd, 'Redes y conectividad'),
+      tecnico_sugerido_id: idUsuario(bd, 'tecnico2'),
       palabra_activadora: 'wifi',
     });
   });

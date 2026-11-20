@@ -16,6 +16,25 @@ export interface ResultadoDecision {
   fecha_decision: string;
 }
 
+export interface SugerenciaPersistida {
+  categoria_id: number | null;
+  categoria: string | null;
+  palabra_activadora: string | null;
+  es_otros: boolean;
+  prioridad: Prioridad | null;
+  grupo_id: number | null;
+  tecnico_id: number | null;
+}
+
+export interface DecisionTicketDetalle {
+  ticket_id: number;
+  pendiente: boolean;
+  sugerencia: SugerenciaPersistida;
+  decision: DecisionTriaje | null;
+  aceptada_sin_correccion: boolean | null;
+  fecha_decision: string | null;
+}
+
 export type CampoCorregible = 'categoria' | 'prioridad' | 'grupo' | 'tecnico';
 
 /** Error con código HTTP, para que la ruta responda 400/404/409 sin adivinar. */
@@ -37,6 +56,7 @@ interface TicketSugerido {
   categoria_sugerida_id: number | null;
   prioridad_sugerida: Prioridad | null;
   grupo_sugerido_id: number | null;
+  tecnico_sugerido_id: number | null;
   tecnico_id: number | null;
   fecha_decision: string | null;
 }
@@ -76,9 +96,77 @@ function validarDecision(conexion: Database.Database, d: DecisionTriaje): void {
  *  - añade una fila al `historial` (nunca lo sobrescribe).
  * Un ticket solo admite una decisión: un segundo intento devuelve 409.
  *
- * Nota: la tabla no tiene `tecnico_sugerido_id`; se toma `tickets.tecnico_id`
- * guardado al crear el ticket (TICK-01) como técnico sugerido.
  */
+export function obtenerDetalleDecision(
+  ticketId: number,
+  conexion: Database.Database = (require('../../db/connection') as typeof import('../../db/connection')).db,
+): DecisionTicketDetalle | undefined {
+  const fila = conexion
+    .prepare(
+      `SELECT t.id AS ticket_id,
+              t.categoria_sugerida_id,
+              c.nombre AS categoria_sugerida,
+              t.palabra_activadora,
+              t.prioridad_sugerida,
+              t.grupo_sugerido_id,
+              t.tecnico_sugerido_id,
+              t.tecnico_id,
+              t.categoria_final_id,
+              t.prioridad_final,
+              t.grupo_final_id,
+              t.aceptada_sin_correccion,
+              t.fecha_decision
+         FROM tickets t
+         LEFT JOIN categorias c ON c.id = t.categoria_sugerida_id
+         WHERE t.id = ?`,
+    )
+    .get(ticketId) as {
+      ticket_id: number;
+      categoria_sugerida_id: number | null;
+      categoria_sugerida: string | null;
+      palabra_activadora: string | null;
+      prioridad_sugerida: Prioridad | null;
+      grupo_sugerido_id: number | null;
+      tecnico_sugerido_id: number | null;
+      tecnico_id: number | null;
+      categoria_final_id: number | null;
+      prioridad_final: Prioridad | null;
+      grupo_final_id: number | null;
+      aceptada_sin_correccion: number | null;
+      fecha_decision: string | null;
+    } | undefined;
+
+  if (!fila) return undefined;
+
+  const sugerencia: SugerenciaPersistida = {
+    categoria_id: fila.categoria_sugerida_id,
+    categoria: fila.categoria_sugerida,
+    palabra_activadora: fila.palabra_activadora,
+    es_otros: fila.palabra_activadora == null,
+    prioridad: fila.prioridad_sugerida,
+    grupo_id: fila.grupo_sugerido_id,
+    tecnico_id: fila.tecnico_sugerido_id,
+  };
+
+  const decision: DecisionTriaje | null = fila.fecha_decision == null
+    ? null
+    : {
+        categoria_final_id: fila.categoria_final_id ?? fila.categoria_sugerida_id ?? 0,
+        prioridad_final: fila.prioridad_final ?? fila.prioridad_sugerida ?? 'Media',
+        grupo_final_id: fila.grupo_final_id ?? fila.grupo_sugerido_id ?? null,
+        tecnico_id: fila.tecnico_id ?? null,
+      };
+
+  return {
+    ticket_id: fila.ticket_id,
+    pendiente: fila.fecha_decision == null,
+    sugerencia,
+    decision,
+    aceptada_sin_correccion: fila.aceptada_sin_correccion == null ? null : Boolean(fila.aceptada_sin_correccion),
+    fecha_decision: fila.fecha_decision,
+  };
+}
+
 export function registrarDecision(
   ticketId: number,
   decision: DecisionTriaje,
@@ -88,7 +176,8 @@ export function registrarDecision(
   const ejecutar = conexion.transaction((): ResultadoDecision => {
     const ticket = conexion
       .prepare(
-        `SELECT id, categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id, tecnico_id, fecha_decision
+        `SELECT id, categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id,
+                tecnico_sugerido_id, tecnico_id, fecha_decision
            FROM tickets WHERE id = ?`,
       )
       .get(ticketId) as TicketSugerido | undefined;
@@ -100,7 +189,7 @@ export function registrarDecision(
       ['categoria', ticket.categoria_sugerida_id, decision.categoria_final_id],
       ['prioridad', ticket.prioridad_sugerida, decision.prioridad_final],
       ['grupo', ticket.grupo_sugerido_id, decision.grupo_final_id],
-      ['tecnico', ticket.tecnico_id, decision.tecnico_id],
+      ['tecnico', ticket.tecnico_sugerido_id, decision.tecnico_id],
     ];
     const correcciones = comparaciones
       .filter(([, sugerido, final]) => aTexto(sugerido) !== aTexto(final))
@@ -135,7 +224,7 @@ export function registrarDecision(
           categoria_id: ticket.categoria_sugerida_id,
           prioridad: ticket.prioridad_sugerida,
           grupo_id: ticket.grupo_sugerido_id,
-          tecnico_id: ticket.tecnico_id,
+          tecnico_id: ticket.tecnico_sugerido_id,
         }),
         JSON.stringify(decision),
         fecha,

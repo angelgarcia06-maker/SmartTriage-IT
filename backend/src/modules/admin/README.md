@@ -219,14 +219,11 @@ Frontend:
 
 ### Pruebas realizadas
 
-- 7 pruebas nuevas de ADM-04 aprobadas.
-- 99 pruebas totales aprobadas.
-- Compilación del frontend correcta.
-- Compilación del backend correcta.
+- Las consultas de precisión por campo se calculan con una lectura agregada de decisiones confirmadas y búsquedas indexadas en correcciones.
+- `npm run check`: compilación de backend/frontend y 194 pruebas aprobadas (20 archivos).
 - Verificado cálculo de aceptación del 80%.
 - Verificados casos sin decisiones.
-- Verificados accesos HTTP 200, 401 y 403
-  mediante middlewares simulados.
+- Verificados accesos HTTP 200, 401 y 403 mediante pruebas de integración.
 
 El endpoint `GET /api/admin/metricas` y el panel original `/admin/dashboard`
 requieren rol administrador. Los conteos consultan SQLite y la precisión

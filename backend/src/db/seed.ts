@@ -2,8 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import { db, DATABASE_PATH } from './connection';
+import { aplicarMigraciones } from './migrations';
 const schemaPath = path.join(__dirname, 'schema.sql');
-if (fs.existsSync(schemaPath)) db.exec(fs.readFileSync(schemaPath,'utf8'));
+if (fs.existsSync(schemaPath)) {
+ db.exec(fs.readFileSync(schemaPath, 'utf8'));
+ aplicarMigraciones(db);
+}
 const groups=['Soporte general','Redes y conectividad','Aplicaciones','Identidades y correo'];
 const categories:[string,string,string[]][]=[
  ['Hardware','Soporte general',['teclado','pantalla','impresora','mouse','monitor']],

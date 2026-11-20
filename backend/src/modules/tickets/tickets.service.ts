@@ -227,9 +227,9 @@ export function crearTicket(
 ): number {
   const resultado = conexion.prepare(
     `INSERT INTO tickets (
-      solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por, tecnico_id,
+      solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por, tecnico_id, tecnico_sugerido_id,
       categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id, palabra_activadora
-    ) VALUES (?, ?, ?, ?, ?, 'Nuevo', ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, 'Nuevo', ?, ?, ?, ?, ?, ?, ?)`,
   ).run(
     datos.solicitante,
     datos.titulo,
@@ -237,6 +237,7 @@ export function crearTicket(
     datos.impacto,
     datos.urgencia,
     usuarioId,
+    sugerencia?.tecnico_id ?? null,
     sugerencia?.tecnico_id ?? null,
     sugerencia?.categoria_id ?? null,
     sugerencia?.prioridad ?? null,

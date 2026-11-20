@@ -63,12 +63,13 @@ export function crearTicket(
   const grupo = datos.grupo === undefined ? 'Redes y conectividad' : datos.grupo;
   return Number(
     bd.prepare(
-      `INSERT INTO tickets(solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por, tecnico_id,
+      `INSERT INTO tickets(solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por, tecnico_id, tecnico_sugerido_id,
                            categoria_sugerida_id, prioridad_sugerida, grupo_sugerido_id, palabra_activadora)
-       VALUES ('Ana', 'Sin wifi', 'No hay wifi', 'Alto', 'Alta', ?, ?, ?, ?, ?, ?, 'wifi')`,
+       VALUES ('Ana', 'Sin wifi', 'No hay wifi', 'Alto', 'Alta', ?, ?, ?, ?, ?, ?, ?, 'wifi')`,
     ).run(
       datos.estado ?? 'Nuevo',
       idUsuario(bd, 'agente'),
+      datos.tecnico_id ?? null,
       datos.tecnico_id ?? null,
       idCategoria(bd, categoria),
       datos.prioridad ?? 'Crítica',

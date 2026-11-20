@@ -69,7 +69,7 @@ Pruebas: `backend/src/modules/triaje/clasificador.test.ts` (`npm test`).
 - Valida categoría activa, grupo activo y que el técnico sea técnico activo del grupo final (400).
 - **No se permite asignar un técnico cuando no existe un grupo resolutor final** (`grupo_final_id: null` + `tecnico_id` no nulo → 400, sin persistir cambios).
 
-Supuesto: la tabla no tiene `tecnico_sugerido_id`, así que el técnico sugerido es el `tickets.tecnico_id` que guarda TICK-01 al crear el ticket.
+La base conserva `tecnico_sugerido_id` de forma independiente del `tecnico_id` final. La migración idempotente recupera en bases existentes la sugerencia desde la corrección histórica del técnico cuando existe y, en los demás casos, desde la asignación original; no elimina ni reescribe el historial.
 
 **Métricas (ADM-04):** usar `CONDICION_DECISION_CONFIRMADA` para excluir tickets sin decisión:
 ```ts
@@ -81,8 +81,12 @@ db.prepare(`SELECT ... FROM tickets WHERE ${CONDICION_DECISION_CONFIRMADA}`);
 
 ```ts
 import { roleRequired } from './modules/auth/auth.middleware';
+import { csrfProtection, csrfTokenProtection } from './modules/auth/csrf';
 import { crearRutasTriaje } from './modules/triaje/rutas';
-app.use('/api', csrfProtection, crearRutasTriaje({ requiereRol: roleRequired }));
+app.use('/api', csrfProtection, crearRutasTriaje({
+  requiereRol: roleRequired,
+  protegerEscrituras: csrfTokenProtection,
+}));
 ```
 
 `sessionMiddleware` se monta una sola vez en `app.ts`, antes de AUTH y Triaje.
@@ -93,7 +97,11 @@ desde `req.session.userId`; nunca aceptan encabezados de identidad.
 |---|---|---|
 | `GET /api/triaje/catalogos` | agente, administrador | 200 categorías, grupos y técnicos activos de SQLite · 401 · 403 |
 | `POST /api/triaje/sugerir` | agente, administrador | 200 `SugerenciaTriaje` · 400 datos inválidos · 401 · 403 |
+| `GET /api/tickets/:id/decision` | agente, administrador, técnico asignado | 200 sugerencia/decisión · 401 · 403 · 404 |
 | `POST /api/tickets/:id/decision` | agente, administrador | 201 resultado · 400 · 401 · 403 · 404 · 409 ya decidido |
+
+Las escrituras de Triaje requieren origen confiable y token CSRF de sesión. El detalle
+de decisiones no consulta catálogos al rol técnico, que no está autorizado a leerlos.
 
 La pantalla `/triaje` permite pedir una sugerencia a la API sin guardar un ticket.
 La decisión solo se registra para un ticket ya persistido; la pantalla de demo no
@@ -101,4 +109,4 @@ crea tickets ni llama al endpoint de decisiones.
 
 ## Pruebas
 
-`npm test` — 63 pruebas del módulo con SQLite en memoria (`fixture.ts` replica el seed): clasificador, matriz, sugerencia/técnico, decisión y rutas HTTP con supertest.
+`npm run check` compila backend/frontend y ejecuta la suite Vitest con SQLite en memoria, incluidos clasificador, matriz, asignación, decisión, rutas con sesión/CSRF e integración de ticket, historial y roles.

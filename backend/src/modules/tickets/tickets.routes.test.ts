@@ -40,12 +40,13 @@ function insertarTicket(
   const resultado = conexion.prepare(`
     INSERT INTO tickets (
       solicitante, titulo, descripcion, impacto, urgencia, estado, creado_por,
-      tecnico_id, categoria_sugerida_id, prioridad_sugerida
-    ) VALUES (?, ?, 'Detalle de prueba', 'Alto', 'Alta', ?, 7, ?, ?, ?)
+      tecnico_id, tecnico_sugerido_id, categoria_sugerida_id, prioridad_sugerida
+    ) VALUES (?, ?, 'Detalle de prueba', 'Alto', 'Alta', ?, 7, ?, ?, ?, ?)
   `).run(
     opciones.solicitante ?? 'Ana',
     titulo,
     opciones.estado ?? 'Nuevo',
+    tecnicoId,
     tecnicoId,
     opciones.categoriaId === undefined ? 3 : opciones.categoriaId,
     opciones.prioridad === undefined ? 'Alta' : opciones.prioridad,
@@ -74,6 +75,7 @@ beforeEach(() => {
       fecha_creacion TEXT NOT NULL DEFAULT '2026-11-13T00:00:00.000Z',
       creado_por INTEGER NOT NULL REFERENCES usuarios(id),
       tecnico_id INTEGER REFERENCES usuarios(id),
+      tecnico_sugerido_id INTEGER REFERENCES usuarios(id),
       categoria_sugerida_id INTEGER,
       prioridad_sugerida TEXT,
       grupo_sugerido_id INTEGER,
@@ -122,6 +124,7 @@ describe('POST /api/tickets', () => {
       prioridad_sugerida: sugerencia.prioridad,
       grupo_sugerido_id: sugerencia.grupo_id,
       tecnico_id: sugerencia.tecnico_id,
+      tecnico_sugerido_id: sugerencia.tecnico_id,
       palabra_activadora: sugerencia.palabra_activadora,
     });
   });

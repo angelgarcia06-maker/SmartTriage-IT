@@ -27,7 +27,7 @@ Abre [SmartTriage IT](http://127.0.0.1:5173). Si los puertos 5173 o 3000 están 
 
 La contraseña de todas las cuentas de demo es `Cambiar123!`. Usa estas cuentas en la demo local.
 
-El primer arranque genera `data/demo/smarttriage-demo.db` con 40 tickets ficticios, historial y decisiones de triaje. Los siguientes arranques reutilizan esa base y conservan tus cambios. Cada integrante tiene su propia copia local. La base de trabajo `data/smarttriage.db` queda aislada.
+El primer arranque genera `data/demo/smarttriage-demo.db` con 40 tickets ficticios, historial y decisiones de triaje. Los siguientes arranques reutilizan esa base, aplican las migraciones pendientes y conservan tus cambios. Cada integrante tiene su propia copia local. La base de trabajo `data/smarttriage.db` queda aislada.
 
 ## Desarrollo con la base de trabajo
 

@@ -22,7 +22,7 @@ Windows 10/11, Node.js 24, npm, repo `angelgarcia06-maker/SmartTriage-IT`, base 
 - QA-02 aporta pruebas deterministas, QA-03 demuestra persistencia tras recarga.
 - Evidencia: captura, salida del comando y SHA de commit para cada ejecución.
 
-## Matriz de pruebas (pendiente de ejecutar)
+## Matriz manual de pruebas
 | ID | Módulo | Entrada / acción | Resultado esperado | Estado |
 |---|---|---|---|---|
 | INS-01 | Instalación | `npm ci` en clon limpio | Instala sin cambios manuales | NO EJECUTADO |
@@ -66,6 +66,17 @@ Windows 10/11, Node.js 24, npm, repo `angelgarcia06-maker/SmartTriage-IT`, base 
 | MET-01 | Métricas | Ticket sin decisión | No se cuenta como aceptado | NO EJECUTADO |
 
 **Nota:** la matriz 3×3 es la propuesta documentada en el módulo Triaje; el equipo debe confirmar su aprobación antes de fijarla como criterio contractual.
+
+## Evidencia automatizada de auditoría
+
+- `npm run check` — PASA: compilación backend/frontend y 194 pruebas en 20 archivos, incluidas migración, autorización, CSRF, asignación, estados, decisiones e historial.
+- `npm run db:seed:demo` — PASA: seed validado sin modificar registros; 40 tickets (8 Nuevo, 8 Asignado, 10 En proceso, 9 Resuelto, 5 Cerrado), 25 decisiones aceptadas, 10 corregidas y 5 pendientes; 110 eventos de historial; `integrity_check: ok`.
+- `git diff --check` — PASA.
+- Validación runtime standalone — PASA: 5/5 aserciones; `npm run dev:demo` sirvió frontend y `/api/health` respondió HTTP 200.
+
+La suite automatizada no reemplaza los pasos de instalación limpia (`npm ci`),
+verificación de persistencia después de reiniciar la API ni recorrido visual con
+captura; esos casos manuales siguen pendientes de ejecución.
 
 ## Reporte por ejecución
 Fecha | Rama | SHA | Node | SO | Comando | Resultado | Evidencia | Responsable.
