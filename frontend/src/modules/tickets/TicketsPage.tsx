@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { ArrowLeft, ArrowUpRight, Plus, RefreshCw, Search, Ticket, X } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ChevronLeft, ChevronRight, Plus, RefreshCw, Search, Ticket, X } from 'lucide-react';
 import type { EstadoTicket, Prioridad } from '../../../../shared/types/triaje.types';
 import TicketCreateForm from './TicketCreateForm';
 import {
@@ -21,6 +21,20 @@ type CamposFiltro = { busqueda: string; estado: string; categoria_id: string; pr
 
 const ESTADOS: EstadoTicket[] = ['Nuevo', 'Asignado', 'En proceso', 'Resuelto', 'Cerrado'];
 const PRIORIDADES: Prioridad[] = ['Crítica', 'Alta', 'Media', 'Baja'];
+const COLOR_ESTADO: Record<EstadoTicket, string> = {
+  Nuevo: 'text-bg-info',
+  Asignado: 'text-bg-primary',
+  'En proceso': 'text-bg-warning',
+  Resuelto: 'text-bg-success',
+  Cerrado: 'text-bg-secondary',
+};
+const COLOR_PRIORIDAD: Record<Prioridad, string> = {
+  Crítica: 'text-bg-danger',
+  Alta: 'text-bg-warning',
+  Media: 'text-bg-info',
+  Baja: 'text-bg-secondary',
+};
+const TICKETS_POR_PAGINA = 10;
 const CAMPOS_FILTRO_VACIOS: CamposFiltro = { busqueda: '', estado: '', categoria_id: '', prioridad: '', tecnico_id: '' };
 const SIGUIENTE_ESTADO: Partial<Record<EstadoTicket, { estado: EstadoTicket; etiqueta: string }>> = {
   Nuevo: { estado: 'Asignado', etiqueta: 'Asignar' },
@@ -89,37 +103,31 @@ function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }
   const [camposFiltro, setCamposFiltro] = useState<CamposFiltro>(CAMPOS_FILTRO_VACIOS);
   const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([]);
   const [tecnicos, setTecnicos] = useState<{ id: number; nombre: string }[]>([]);
+  const [pagina, setPagina] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPaginas, setTotalPaginas] = useState(0);
   const hayFiltros = Object.values(criterios).some((valor) => valor !== undefined);
 
   useEffect(() => {
     let vigente = true;
     setCargando(true);
     setError('');
-    listarTickets(criterios)
+    listarTickets({ ...criterios, pagina, limite: TICKETS_POR_PAGINA })
       .then((resultado) => {
         if (!vigente) return;
-        setTickets(resultado);
-        if (!hayFiltros) {
-          const opcionesCategoria = new Map<number, string>();
-          const opcionesTecnico = new Map<number, string>();
-          resultado.forEach((ticket) => {
-            if (ticket.categoria_sugerida_id !== null && ticket.categoria_sugerida) {
-              opcionesCategoria.set(ticket.categoria_sugerida_id, ticket.categoria_sugerida);
-            }
-            if (ticket.tecnico_id !== null && ticket.tecnico) {
-              opcionesTecnico.set(ticket.tecnico_id, ticket.tecnico);
-            }
-          });
-          setCategorias([...opcionesCategoria].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)));
-          setTecnicos([...opcionesTecnico].map(([id, nombre]) => ({ id, nombre })).sort((a, b) => a.nombre.localeCompare(b.nombre)));
-        }
+        setTickets(resultado.tickets);
+        setTotal(resultado.total);
+        setTotalPaginas(resultado.totalPaginas);
+        setPagina(resultado.pagina);
+        setCategorias(resultado.categorias);
+        setTecnicos(resultado.tecnicos);
       })
       .catch((err: unknown) => {
         if (vigente) setError(err instanceof Error ? err.message : 'No se pudieron cargar los tickets.');
       })
       .finally(() => { if (vigente) setCargando(false); });
     return () => { vigente = false; };
-  }, [criterios, hayFiltros, revision]);
+  }, [criterios, pagina, revision]);
 
   function enviarFiltros(evento: FormEvent<HTMLFormElement>) {
     evento.preventDefault();
@@ -130,11 +138,13 @@ function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }
     if (camposFiltro.prioridad) nuevos.prioridad = camposFiltro.prioridad as Prioridad;
     if (camposFiltro.tecnico_id) nuevos.tecnico_id = Number(camposFiltro.tecnico_id);
     setCriterios(nuevos);
+    setPagina(1);
   }
 
   function limpiarFiltros() {
     setCamposFiltro(CAMPOS_FILTRO_VACIOS);
     setCriterios({});
+    setPagina(1);
   }
 
   return (
@@ -143,7 +153,7 @@ function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }
         <div className="d-flex align-items-center gap-2">
           <Ticket size={22} aria-hidden="true" />
           <h2 id="lista-tickets-titulo" className="h4 mb-0">Tickets</h2>
-          {!cargando && tickets && <span className="badge text-bg-light border">{tickets.length}</span>}
+          {!cargando && tickets && <span className="badge text-bg-light border">{total}</span>}
         </div>
         <div className="d-flex gap-2">
           <button type="button" className="btn btn-outline-secondary" onClick={onActualizar} title="Actualizar listado" aria-label="Actualizar listado">
@@ -235,40 +245,64 @@ function ListadoTickets({ revision, puedeCrear, onCrear, onAbrir, onActualizar }
       )}
 
       {!cargando && !error && tickets && tickets.length > 0 && (
-        <div className="feature-card table-responsive">
-          <table className="table table-hover align-middle mb-0">
-            <thead>
-              <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Título</th>
-                <th scope="col">Estado</th>
-                <th scope="col">Categoría</th>
-                <th scope="col">Prioridad</th>
-                <th scope="col">Técnico</th>
-                <th scope="col">Creado</th>
-                <th scope="col"><span className="visually-hidden">Abrir</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {tickets.map((ticket) => (
-                <tr key={ticket.id}>
-                  <td>#{ticket.id}</td>
-                  <th scope="row" className="fw-medium">{ticket.titulo}</th>
-                  <td><span className="badge text-bg-light border">{ticket.estado}</span></td>
-                  <td>{ticket.categoria_sugerida ?? 'Sin sugerencia'}</td>
-                  <td>{ticket.prioridad_sugerida ?? '—'}</td>
-                  <td>{ticket.tecnico ?? 'Sin asignar'}</td>
-                  <td className="text-nowrap">{fechaLegible(ticket.fecha_creacion)}</td>
-                  <td>
-                    <button type="button" className="btn btn-sm btn-outline-secondary" title={`Ver ticket ${ticket.id}`} aria-label={`Ver ticket ${ticket.id}`} onClick={() => onAbrir(ticket.id)}>
-                      <ArrowUpRight size={16} aria-hidden="true" />
-                    </button>
-                  </td>
+        <>
+          <div className="feature-card table-responsive">
+            <table className="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">ID</th>
+                  <th scope="col">Título</th>
+                  <th scope="col">Estado</th>
+                  <th scope="col">Categoría</th>
+                  <th scope="col">Prioridad</th>
+                  <th scope="col">Técnico</th>
+                  <th scope="col">Creado</th>
+                  <th scope="col"><span className="visually-hidden">Abrir</span></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {tickets.map((ticket) => (
+                  <tr key={ticket.id}>
+                    <td>#{ticket.id}</td>
+                    <th scope="row" className="fw-medium">{ticket.titulo}</th>
+                    <td><span className={`badge ${COLOR_ESTADO[ticket.estado]}`}>{ticket.estado}</span></td>
+                    <td>{ticket.categoria_sugerida ?? 'Sin sugerencia'}</td>
+                    <td>
+                      {ticket.prioridad_sugerida
+                        ? <span className={`badge ${COLOR_PRIORIDAD[ticket.prioridad_sugerida]}`}>{ticket.prioridad_sugerida}</span>
+                        : '—'}
+                    </td>
+                    <td>{ticket.tecnico ?? 'Sin asignar'}</td>
+                    <td className="text-nowrap">{fechaLegible(ticket.fecha_creacion)}</td>
+                    <td>
+                      <button type="button" className="btn btn-sm btn-outline-secondary" title={`Ver ticket ${ticket.id}`} aria-label={`Ver ticket ${ticket.id}`} onClick={() => onAbrir(ticket.id)}>
+                        <ArrowUpRight size={16} aria-hidden="true" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="ticket-pagination">
+            <p role="status">
+              {total === 0
+                ? 'Sin resultados'
+                : `Mostrando ${(pagina - 1) * TICKETS_POR_PAGINA + 1}–${Math.min(pagina * TICKETS_POR_PAGINA, total)} de ${total} tickets`}
+            </p>
+            <nav aria-label="Paginación de tickets">
+              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={pagina <= 1 || cargando}
+                onClick={() => setPagina((actual) => Math.max(1, actual - 1))}>
+                <ChevronLeft size={16} aria-hidden="true" />Anterior
+              </button>
+              <span aria-current="page">Página {pagina} de {totalPaginas}</span>
+              <button type="button" className="btn btn-outline-secondary btn-sm" disabled={pagina >= totalPaginas || cargando}
+                onClick={() => setPagina((actual) => Math.min(totalPaginas, actual + 1))}>
+                Siguiente<ChevronRight size={16} aria-hidden="true" />
+              </button>
+            </nav>
+          </div>
+        </>
       )}
     </section>
   );
@@ -361,7 +395,7 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
           <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
             <Ticket size={22} aria-hidden="true" />
             <h2 id="detalle-ticket-titulo" className="h4 mb-0">Ticket #{ticket.id}: {ticket.titulo}</h2>
-            <span className="badge text-bg-light border ms-sm-auto">{ticket.estado}</span>
+            <span className={`badge ${COLOR_ESTADO[ticket.estado]} ms-sm-auto`}>{ticket.estado}</span>
           </div>
           <div className="feature-card">
             <dl className="row mb-0">
@@ -385,6 +419,18 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
               />
             </div>
           )}
+          {decision?.pendiente && !puedeConsultarCatalogos && (
+            <section className="feature-card mt-3" aria-labelledby="sugerencia-consulta-titulo">
+              <h3 id="sugerencia-consulta-titulo" className="h6">Sugerencia original · solo consulta</h3>
+              <dl className="row mb-0">
+                <dt className="col-sm-3">Categoría</dt><dd className="col-sm-9">{decision.sugerencia.categoria ?? 'Sin sugerencia'}</dd>
+                <dt className="col-sm-3">Prioridad</dt><dd className="col-sm-9">{decision.sugerencia.prioridad ?? 'Sin sugerencia'}</dd>
+                <dt className="col-sm-3">Grupo sugerido</dt><dd className="col-sm-9">{decision.sugerencia.grupo_nombre ?? 'Sin asignar'}</dd>
+                <dt className="col-sm-3">Técnico sugerido</dt><dd className="col-sm-9">{decision.sugerencia.tecnico_nombre ?? 'Sin asignar'}</dd>
+              </dl>
+              <p className="small muted mb-0">La decisión de aceptar o corregir corresponde a un agente o administrador.</p>
+            </section>
+          )}
           {decision && !decision.pendiente && decision.decision && (
             <section className="feature-card mt-3" aria-labelledby="decision-ticket-titulo">
               <h3 id="decision-ticket-titulo" className="h6">Decisión confirmada</h3>
@@ -392,10 +438,10 @@ function DetalleTicket({ id, onVolver }: DetalleProps) {
                 {decision.aceptada_sin_correccion ? 'Sugerencia aceptada sin cambios.' : 'Sugerencia corregida por el agente.'}
               </p>
               <dl className="row mb-0 small">
-                <dt className="col-sm-3">Categoría final</dt><dd className="col-sm-9">{catalogos ? catalogos.categorias.find((c) => c.id === decision.decision?.categoria_final_id)?.nombre ?? 'Sin asignar' : decision.decision?.categoria_final_id}</dd>
+                <dt className="col-sm-3">Categoría final</dt><dd className="col-sm-9">{decision.decision_nombres?.categoria ?? 'Sin asignar'}</dd>
                 <dt className="col-sm-3">Prioridad final</dt><dd className="col-sm-9">{decision.decision?.prioridad_final ?? 'Sin asignar'}</dd>
-                <dt className="col-sm-3">Grupo final</dt><dd className="col-sm-9">{catalogos ? catalogos.grupos.find((g) => g.id === decision.decision?.grupo_final_id)?.nombre ?? 'Sin asignar' : decision.decision?.grupo_final_id ?? 'Sin asignar'}</dd>
-                <dt className="col-sm-3">Técnico final</dt><dd className="col-sm-9">{catalogos ? catalogos.tecnicos.find((t) => t.id === decision.decision?.tecnico_id)?.nombre ?? 'Sin asignar' : decision.decision?.tecnico_id ?? 'Sin asignar'}</dd>
+                <dt className="col-sm-3">Grupo final</dt><dd className="col-sm-9">{decision.decision_nombres?.grupo ?? 'Sin asignar'}</dd>
+                <dt className="col-sm-3">Técnico final</dt><dd className="col-sm-9">{decision.decision_nombres?.tecnico ?? 'Sin asignar'}</dd>
                 <dt className="col-sm-3">Fecha</dt><dd className="col-sm-9">{decision.fecha_decision ? fechaLegible(decision.fecha_decision) : '—'}</dd>
               </dl>
             </section>

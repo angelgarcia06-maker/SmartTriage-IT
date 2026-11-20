@@ -11,12 +11,14 @@
 - El listado presenta los datos requeridos y el detalle incluye descripción, solicitante, impacto y urgencia.
 - `TicketsPage` está disponible en `/tickets`; el menú y las acciones se limitan según el rol.
 - El detalle recupera las decisiones para agentes, administradores y técnicos asignados; solo los dos primeros roles consultan catálogos y pueden confirmar o corregir una sugerencia.
+- El detalle autorizado incluye los nombres de los valores sugeridos/finales en la respuesta de decisión, de modo que el técnico no necesita solicitar catálogos protegidos.
 - La confirmación conserva el técnico sugerido original; la decisión final y su historial se muestran después de recargar.
 
 ## TICK-03: filtros y búsqueda
 
 - El listado permite combinar búsqueda por ID, título o solicitante con estado, categoría sugerida, prioridad y técnico.
-- Los filtros se envían a `GET /api/tickets` y el estado vacío distingue entre lista vacía y búsqueda sin coincidencias.
+- Los filtros se envían a `GET /api/tickets`; `pagina` y `limite` habilitan paginación en SQLite (10 filas por página, máximo 100 por solicitud) con total y opciones de filtro respetando el alcance del rol.
+- El estado vacío distingue entre lista vacía y búsqueda sin coincidencias.
 
 ## TICK-04: estados e historial
 

@@ -29,6 +29,12 @@ La contraseña de todas las cuentas de demo es `Cambiar123!`. Usa estas cuentas 
 
 El primer arranque genera `data/demo/smarttriage-demo.db` con 40 tickets ficticios, historial y decisiones de triaje. Los siguientes arranques reutilizan esa base, aplican las migraciones pendientes y conservan tus cambios. Cada integrante tiene su propia copia local. La base de trabajo `data/smarttriage.db` queda aislada.
 
+## Funciones para la demo
+
+- La bandeja permite buscar y filtrar incidencias y las muestra en páginas de 10 tickets.
+- El detalle presenta la sugerencia original, la decisión final y el historial. Los técnicos pueden consultar los tickets asignados.
+- El panel de administración muestra la carga abierta por técnico y las decisiones de triaje aceptadas, corregidas y pendientes.
+
 ## Desarrollo con la base de trabajo
 
 `npm run dev` sigue usando `DB_FILE` o `data/smarttriage.db`. Para preparar una base de trabajo nueva, usa `npm run db:init` y `npm run db:seed` antes de arrancar. Las escrituras de Tickets requieren sesión y token CSRF de AUTH-05.

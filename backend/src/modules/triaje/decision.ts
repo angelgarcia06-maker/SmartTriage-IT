@@ -23,7 +23,15 @@ export interface SugerenciaPersistida {
   es_otros: boolean;
   prioridad: Prioridad | null;
   grupo_id: number | null;
+  grupo_nombre: string | null;
   tecnico_id: number | null;
+  tecnico_nombre: string | null;
+}
+
+export interface DecisionNombres {
+  categoria: string | null;
+  grupo: string | null;
+  tecnico: string | null;
 }
 
 export interface DecisionTicketDetalle {
@@ -31,6 +39,7 @@ export interface DecisionTicketDetalle {
   pendiente: boolean;
   sugerencia: SugerenciaPersistida;
   decision: DecisionTriaje | null;
+  decision_nombres: DecisionNombres | null;
   aceptada_sin_correccion: boolean | null;
   fecha_decision: string | null;
 }
@@ -109,15 +118,25 @@ export function obtenerDetalleDecision(
               t.palabra_activadora,
               t.prioridad_sugerida,
               t.grupo_sugerido_id,
+              gs.nombre AS grupo_sugerido,
               t.tecnico_sugerido_id,
+              ts.nombre AS tecnico_sugerido,
               t.tecnico_id,
               t.categoria_final_id,
+              cf.nombre AS categoria_final,
               t.prioridad_final,
               t.grupo_final_id,
+              gf.nombre AS grupo_final,
+              tf.nombre AS tecnico_final,
               t.aceptada_sin_correccion,
               t.fecha_decision
          FROM tickets t
          LEFT JOIN categorias c ON c.id = t.categoria_sugerida_id
+         LEFT JOIN grupos gs ON gs.id = t.grupo_sugerido_id
+         LEFT JOIN usuarios ts ON ts.id = t.tecnico_sugerido_id
+         LEFT JOIN categorias cf ON cf.id = t.categoria_final_id
+         LEFT JOIN grupos gf ON gf.id = t.grupo_final_id
+         LEFT JOIN usuarios tf ON tf.id = t.tecnico_id
          WHERE t.id = ?`,
     )
     .get(ticketId) as {
@@ -127,11 +146,16 @@ export function obtenerDetalleDecision(
       palabra_activadora: string | null;
       prioridad_sugerida: Prioridad | null;
       grupo_sugerido_id: number | null;
+      grupo_sugerido: string | null;
       tecnico_sugerido_id: number | null;
+      tecnico_sugerido: string | null;
       tecnico_id: number | null;
       categoria_final_id: number | null;
+      categoria_final: string | null;
       prioridad_final: Prioridad | null;
       grupo_final_id: number | null;
+      grupo_final: string | null;
+      tecnico_final: string | null;
       aceptada_sin_correccion: number | null;
       fecha_decision: string | null;
     } | undefined;
@@ -145,7 +169,9 @@ export function obtenerDetalleDecision(
     es_otros: fila.palabra_activadora == null,
     prioridad: fila.prioridad_sugerida,
     grupo_id: fila.grupo_sugerido_id,
+    grupo_nombre: fila.grupo_sugerido,
     tecnico_id: fila.tecnico_sugerido_id,
+    tecnico_nombre: fila.tecnico_sugerido,
   };
 
   const decision: DecisionTriaje | null = fila.fecha_decision == null
@@ -153,8 +179,15 @@ export function obtenerDetalleDecision(
     : {
         categoria_final_id: fila.categoria_final_id ?? fila.categoria_sugerida_id ?? 0,
         prioridad_final: fila.prioridad_final ?? fila.prioridad_sugerida ?? 'Media',
-        grupo_final_id: fila.grupo_final_id ?? fila.grupo_sugerido_id ?? null,
+        grupo_final_id: fila.grupo_final_id,
         tecnico_id: fila.tecnico_id ?? null,
+      };
+  const decisionNombres: DecisionNombres | null = fila.fecha_decision == null
+    ? null
+    : {
+        categoria: fila.categoria_final ?? fila.categoria_sugerida,
+        grupo: fila.grupo_final,
+        tecnico: fila.tecnico_final,
       };
 
   return {
@@ -162,6 +195,7 @@ export function obtenerDetalleDecision(
     pendiente: fila.fecha_decision == null,
     sugerencia,
     decision,
+    decision_nombres: decisionNombres,
     aceptada_sin_correccion: fila.aceptada_sin_correccion == null ? null : Boolean(fila.aceptada_sin_correccion),
     fecha_decision: fila.fecha_decision,
   };

@@ -36,6 +36,15 @@ describe('ADM-04: Dashboard y precisión', () => {
     const metricas = obtenerMetricas(bd);
 
     expect(metricas.tickets.total).toBe(0);
+    expect(metricas.tickets.abiertos).toBe(0);
+    expect(metricas.tickets.resueltosYCerrados).toBe(0);
+    expect(metricas.tickets.criticos).toBe(0);
+    expect(metricas.tickets.porTecnicoAbiertos).toEqual([]);
+    expect(metricas.decisiones).toEqual({
+      aceptadas: 0,
+      corregidas: 0,
+      pendientes: 0
+    });
     expect(metricas.precision.global.total).toBe(0);
     expect(metricas.precision.global.porcentaje).toBe(0);
 
@@ -61,6 +70,7 @@ describe('ADM-04: Dashboard y precisión', () => {
     expect(metricas.precision.global.total).toBe(0);
     expect(metricas.precision.global.aceptadas).toBe(0);
     expect(metricas.precision.global.porcentaje).toBe(0);
+    expect(metricas.decisiones.pendientes).toBe(1);
 
     expect(metricas.tickets.porEstado).toEqual([
       { nombre: 'Nuevo', total: 1 }
@@ -126,6 +136,17 @@ describe('ADM-04: Dashboard y precisión', () => {
 
     // Los 12 tickets cuentan en el Dashboard.
     expect(metricas.tickets.total).toBe(12);
+    expect(metricas.tickets.abiertos).toBe(12);
+    expect(metricas.tickets.resueltosYCerrados).toBe(0);
+    expect(metricas.tickets.criticos).toBe(7);
+    expect(metricas.decisiones).toEqual({
+      aceptadas: 8,
+      corregidas: 2,
+      pendientes: 2
+    });
+    expect(metricas.tickets.porTecnicoAbiertos).toEqual([
+      { tecnico_id: null, nombre: 'Sin asignar', total: 12 }
+    ]);
 
     // Solo las 10 decisiones confirmadas cuentan.
     expect(metricas.precision.global).toEqual({

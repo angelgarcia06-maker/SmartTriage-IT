@@ -27,9 +27,22 @@ interface PrecisionCategoria extends Precision {
 export interface MetricasDashboard {
   tickets: {
     total: number;
+    abiertos: number;
+    resueltosYCerrados: number;
+    criticos: number;
     porEstado: Conteo[];
     porCategoria: Conteo[];
     porPrioridad: Conteo[];
+    porTecnicoAbiertos: Array<{
+      tecnico_id: number | null;
+      nombre: string;
+      total: number;
+    }>;
+  };
+  decisiones: {
+    aceptadas: number;
+    corregidas: number;
+    pendientes: number;
   };
   precision: {
     global: Precision;
@@ -55,6 +68,51 @@ export function obtenerMetricas(
     SELECT COUNT(*) AS total
     FROM tickets
   `).get() as { total: number };
+
+  const resumenOperativo = db.prepare(`
+    SELECT
+      COALESCE(SUM(CASE WHEN estado IN ('Nuevo', 'Asignado', 'En proceso') THEN 1 ELSE 0 END), 0) AS abiertos,
+      COALESCE(SUM(CASE WHEN estado IN ('Resuelto', 'Cerrado') THEN 1 ELSE 0 END), 0) AS resueltosYCerrados,
+      COALESCE(SUM(CASE WHEN COALESCE(prioridad_final, prioridad_sugerida) = 'Crítica' THEN 1 ELSE 0 END), 0) AS criticos
+    FROM tickets
+  `).get() as {
+    abiertos: number;
+    resueltosYCerrados: number;
+    criticos: number;
+  };
+
+  const decisiones = db.prepare(`
+    SELECT
+      COALESCE(SUM(CASE WHEN aceptada_sin_correccion = 1 THEN 1 ELSE 0 END), 0) AS aceptadas,
+      COALESCE(SUM(CASE WHEN aceptada_sin_correccion = 0 THEN 1 ELSE 0 END), 0) AS corregidas,
+      COALESCE(SUM(CASE
+        WHEN fecha_decision IS NULL
+          AND (categoria_sugerida_id IS NOT NULL OR prioridad_sugerida IS NOT NULL
+            OR grupo_sugerido_id IS NOT NULL OR tecnico_sugerido_id IS NOT NULL)
+        THEN 1 ELSE 0
+      END), 0) AS pendientes
+    FROM tickets
+  `).get() as {
+    aceptadas: number;
+    corregidas: number;
+    pendientes: number;
+  };
+
+  const porTecnicoAbiertos = db.prepare(`
+    SELECT
+      t.tecnico_id,
+      COALESCE(u.nombre, 'Sin asignar') AS nombre,
+      COUNT(*) AS total
+    FROM tickets t
+    LEFT JOIN usuarios u ON u.id = t.tecnico_id
+    WHERE t.estado IN ('Nuevo', 'Asignado', 'En proceso')
+    GROUP BY t.tecnico_id, u.nombre
+    ORDER BY total DESC, nombre
+  `).all() as Array<{
+    tecnico_id: number | null;
+    nombre: string;
+    total: number;
+  }>;
 
   // Tickets agrupados por estado
   const porEstado = db.prepare(`
@@ -205,10 +263,13 @@ export function obtenerMetricas(
   return {
     tickets: {
       total: conteo.total,
+      ...resumenOperativo,
       porEstado,
       porCategoria,
-      porPrioridad
+      porPrioridad,
+      porTecnicoAbiertos
     },
+    decisiones,
     precision: {
       global: precisionGlobal,
       porCampo,

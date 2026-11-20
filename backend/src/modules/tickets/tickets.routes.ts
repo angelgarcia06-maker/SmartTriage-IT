@@ -7,6 +7,7 @@ import {
   crearTicket,
   ErrorEstadoTicket,
   listarTickets,
+  listarTicketsPaginado,
   obtenerHistorial,
   obtenerTicket,
   type DatosTicket,
@@ -17,6 +18,8 @@ import {
 const ESTADOS_TICKET = ['Nuevo', 'Asignado', 'En proceso', 'Resuelto', 'Cerrado'] as const;
 const PRIORIDADES_TICKET = ['Crítica', 'Alta', 'Media', 'Baja'] as const;
 const idFiltro = z.string().regex(/^[1-9]\d*$/).transform(Number).refine(Number.isSafeInteger);
+const paginaFiltro = z.string().regex(/^[1-9]\d*$/).transform(Number).refine(Number.isSafeInteger);
+const limiteFiltro = paginaFiltro.refine((valor) => valor <= 100);
 
 const esquemaTicket = z.object({
   solicitante: z.string().trim().min(1).max(120),
@@ -32,6 +35,8 @@ const esquemaFiltros = z.object({
   categoria_id: idFiltro.optional(),
   prioridad: z.enum(PRIORIDADES_TICKET).optional(),
   tecnico_id: idFiltro.optional(),
+  pagina: paginaFiltro.optional(),
+  limite: limiteFiltro.optional(),
 }).strict();
 
 const esquemaCambioEstado = z.object({
@@ -98,6 +103,16 @@ export function crearRutasTickets(opciones: OpcionesRutasTickets = {}): Router {
       prioridad: parametros.data.prioridad,
       tecnicoId: parametros.data.tecnico_id,
     };
+    if (parametros.data.pagina !== undefined || parametros.data.limite !== undefined) {
+      res.json(listarTicketsPaginado(
+        conexion,
+        tecnicoId,
+        filtros,
+        parametros.data.pagina ?? 1,
+        parametros.data.limite ?? 10,
+      ));
+      return;
+    }
     res.json({ tickets: listarTickets(conexion, tecnicoId, filtros) });
   });
 

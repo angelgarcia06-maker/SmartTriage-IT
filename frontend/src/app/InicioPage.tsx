@@ -6,6 +6,7 @@ import {
   ChartColumn,
   Database,
   Settings2,
+  Ticket,
   Users,
 } from 'lucide-react';
 import { useAuth } from '../modules/auth/useAuth';
@@ -25,11 +26,27 @@ const ETIQUETA_ROL: Record<string, string> = {
 };
 
 const ACCESOS_ADMIN: Acceso[] = [
+  { nombre: 'Tickets', descripcion: 'Revisa incidencias, asignaciones y su historial.', destino: '/tickets', icono: Ticket },
+  { nombre: 'Triaje inteligente', descripcion: 'Analiza incidencias y consulta recomendaciones explicadas.', destino: '/triaje', icono: BrainCircuit },
   { nombre: 'Dashboard', descripcion: 'Consulta las métricas y decisiones confirmadas.', destino: '/admin/dashboard', icono: ChartColumn },
   { nombre: 'Usuarios', descripcion: 'Administra cuentas, roles y grupos de soporte.', destino: '/usuarios', icono: Users },
   { nombre: 'Catálogos', descripcion: 'Gestiona categorías y grupos de soporte.', destino: '/admin/catalogos', icono: Settings2 },
   { nombre: 'Diccionario', descripcion: 'Mantén las palabras clave de clasificación.', destino: '/admin/diccionario', icono: BookOpen },
 ];
+
+const ACCESO_TICKETS: Acceso = {
+  nombre: 'Tickets',
+  descripcion: 'Consulta tus incidencias asignadas, su detalle y evolución.',
+  destino: '/tickets',
+  icono: Ticket,
+};
+
+const ACCESO_TRIAJE: Acceso = {
+  nombre: 'Triaje inteligente',
+  descripcion: 'Analiza una incidencia y consulta su categoría y asignación sugeridas.',
+  destino: '/triaje',
+  icono: BrainCircuit,
+};
 
 /** Inicio personalizado por rol, sin estadísticas ni actividad simuladas. */
 export default function InicioPage() {
@@ -59,13 +76,10 @@ export default function InicioPage() {
   const accesos = rol === 'administrador'
     ? ACCESOS_ADMIN
     : rol === 'agente'
-      ? [{
-          nombre: 'Triaje inteligente',
-          descripcion: 'Analiza una incidencia y consulta su categoría y asignación sugeridas.',
-          destino: '/triaje',
-          icono: BrainCircuit,
-        }]
-      : [];
+      ? [ACCESO_TRIAJE, ACCESO_TICKETS]
+      : rol === 'tecnico'
+        ? [ACCESO_TICKETS]
+        : [];
 
   return (
     <div className="page-section">
@@ -89,11 +103,6 @@ export default function InicioPage() {
               </div>
             ))}
           </div>
-        </section>
-      ) : rol === 'tecnico' ? (
-        <section className="empty-state" aria-labelledby="espacio-tecnico">
-          <h2 id="espacio-tecnico">Espacio de trabajo</h2>
-          <p>Las herramientas para las tareas de soporte estarán disponibles aquí.</p>
         </section>
       ) : null}
 

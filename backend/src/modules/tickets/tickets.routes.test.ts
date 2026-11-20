@@ -171,11 +171,16 @@ describe('GET /api/tickets', () => {
     const asignadoId = insertarTicket('Asignado a técnico', 9);
     insertarTicket('Asignado a otro', 7);
     insertarTicket('Sin asignar', null);
+    const appTecnico = crearApp(true, { id: 9, rol: 'tecnico' });
 
-    const respuesta = await request(crearApp(true, { id: 9, rol: 'tecnico' })).get('/api/tickets');
+    const respuesta = await request(appTecnico).get('/api/tickets');
+    const pagina = await request(appTecnico).get('/api/tickets').query({ pagina: '1', limite: '10' });
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([asignadoId]);
+    expect(pagina.body.total).toBe(1);
+    expect(pagina.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([asignadoId]);
+    expect(pagina.body.tecnicos).toEqual([{ id: 9, nombre: 'Técnico de prueba' }]);
   });
 
   it('combina búsqueda y todos los filtros en una misma consulta', async () => {
@@ -195,6 +200,31 @@ describe('GET /api/tickets', () => {
 
     expect(respuesta.status).toBe(200);
     expect(respuesta.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([objetivo]);
+  });
+
+  it('pagina resultados en SQLite y conserva el total y las opciones de filtro', async () => {
+    insertarTicket('Primero', 9);
+    insertarTicket('Segundo', 7);
+    insertarTicket('Tercero', null);
+
+    const paginaUno = await request(crearApp()).get('/api/tickets').query({ pagina: '1', limite: '2' });
+    const paginaDos = await request(crearApp()).get('/api/tickets').query({ pagina: '2', limite: '2' });
+
+    expect(paginaUno.status).toBe(200);
+    expect(paginaUno.body).toMatchObject({
+      total: 3,
+      pagina: 1,
+      limite: 2,
+      totalPaginas: 2,
+    });
+    expect(paginaUno.body.tickets).toHaveLength(2);
+    expect(paginaDos.body.tickets).toHaveLength(1);
+    expect(paginaUno.body.categorias.length).toBeGreaterThan(0);
+    expect(paginaUno.body.tecnicos.length).toBeGreaterThan(0);
+    expect([
+      ...paginaUno.body.tickets.map((ticket: { id: number }) => ticket.id),
+      ...paginaDos.body.tickets.map((ticket: { id: number }) => ticket.id),
+    ]).toHaveLength(3);
   });
 
   it('busca por ID, título o solicitante', async () => {
@@ -218,12 +248,14 @@ describe('GET /api/tickets', () => {
       request(app).get('/api/tickets').query({ categoria_id: 'abc' }),
       request(app).get('/api/tickets').query({ prioridad: 'Urgente' }),
       request(app).get('/api/tickets').query({ tecnico_id: '-9' }),
+      request(app).get('/api/tickets').query({ pagina: '0' }),
+      request(app).get('/api/tickets').query({ limite: '101' }),
       request(app).get('/api/tickets').query({ desconocido: 'valor' }),
     ]);
     const fueraDeAlcance = await request(tecnico).get('/api/tickets').query({ tecnico_id: '11' });
     const propio = await request(tecnico).get('/api/tickets').query({ tecnico_id: '9' });
 
-    expect(estadosInvalidos.map((respuesta) => respuesta.status)).toEqual([400, 400, 400, 400, 400]);
+    expect(estadosInvalidos.map((respuesta) => respuesta.status)).toEqual([400, 400, 400, 400, 400, 400, 400]);
     expect(fueraDeAlcance.body.tickets).toEqual([]);
     expect(propio.body.tickets.map((ticket: { id: number }) => ticket.id)).toEqual([ticketId]);
   });

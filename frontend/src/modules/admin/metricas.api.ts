@@ -28,9 +28,22 @@ export interface PrecisionPorCategoria extends PrecisionMetrica {
 export interface MetricasDashboard {
   tickets: {
     total: number;
+    abiertos: number;
+    resueltosYCerrados: number;
+    criticos: number;
     porEstado: ConteoMetrica[];
     porCategoria: ConteoMetrica[];
     porPrioridad: ConteoMetrica[];
+    porTecnicoAbiertos: Array<{
+      tecnico_id: number | null;
+      nombre: string;
+      total: number;
+    }>;
+  };
+  decisiones: {
+    aceptadas: number;
+    corregidas: number;
+    pendientes: number;
   };
   precision: {
     global: PrecisionMetrica;

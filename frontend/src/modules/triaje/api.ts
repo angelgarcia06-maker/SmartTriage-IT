@@ -13,8 +13,16 @@ export interface ResultadoDecision {
 export interface DetalleDecisionTicket {
   ticket_id: number;
   pendiente: boolean;
-  sugerencia: SugerenciaTriaje;
+  sugerencia: SugerenciaTriaje & {
+    grupo_nombre: string | null;
+    tecnico_nombre: string | null;
+  };
   decision: DecisionTriaje | null;
+  decision_nombres: {
+    categoria: string | null;
+    grupo: string | null;
+    tecnico: string | null;
+  } | null;
   aceptada_sin_correccion: boolean | null;
   fecha_decision: string | null;
 }

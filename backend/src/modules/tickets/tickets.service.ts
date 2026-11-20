@@ -45,6 +45,16 @@ export interface FiltrosTickets {
   tecnicoId?: number;
 }
 
+export interface PaginaTickets {
+  tickets: TicketResumen[];
+  total: number;
+  pagina: number;
+  limite: number;
+  totalPaginas: number;
+  categorias: Array<{ id: number; nombre: string }>;
+  tecnicos: Array<{ id: number; nombre: string }>;
+}
+
 export interface TicketDetalle extends TicketResumen {
   solicitante: string;
   descripcion: string;
@@ -102,11 +112,10 @@ const camposResumen = `
   tecnico.nombre AS tecnico,
   t.fecha_creacion`;
 
-export function listarTickets(
-  conexion: Database.Database,
+function construirCondiciones(
   tecnicoSesionId?: number,
   filtros: FiltrosTickets = {},
-): TicketResumen[] {
+): { where: string; parametros: (string | number)[] } {
   const condiciones: string[] = [];
   const parametros: (string | number)[] = [];
   if (tecnicoSesionId !== undefined) {
@@ -135,9 +144,66 @@ export function listarTickets(
     parametros.push(filtros.tecnicoId);
   }
   const where = condiciones.length ? ` WHERE ${condiciones.join(' AND ')}` : '';
+  return { where, parametros };
+}
+
+export function listarTickets(
+  conexion: Database.Database,
+  tecnicoSesionId?: number,
+  filtros: FiltrosTickets = {},
+): TicketResumen[] {
+  const { where, parametros } = construirCondiciones(tecnicoSesionId, filtros);
   const orden = ' ORDER BY t.fecha_creacion DESC, t.id DESC';
   const consulta = conexion.prepare(`SELECT ${camposResumen}${joinsTicket}${where}${orden}`);
   return consulta.all(...parametros) as TicketResumen[];
+}
+
+export function listarTicketsPaginado(
+  conexion: Database.Database,
+  tecnicoSesionId: number | undefined,
+  filtros: FiltrosTickets,
+  paginaSolicitada: number,
+  limite: number,
+): PaginaTickets {
+  const { where, parametros } = construirCondiciones(tecnicoSesionId, filtros);
+  const conteo = conexion.prepare(`SELECT COUNT(*) AS total FROM tickets t${where}`)
+    .get(...parametros) as { total: number };
+  const totalPaginas = Math.ceil(conteo.total / limite);
+  const pagina = totalPaginas === 0
+    ? 1
+    : Math.min(paginaSolicitada, totalPaginas);
+  const tickets = conexion.prepare(`
+    SELECT ${camposResumen}${joinsTicket}${where}
+    ORDER BY t.fecha_creacion DESC, t.id DESC
+    LIMIT ? OFFSET ?
+  `).all(...parametros, limite, (pagina - 1) * limite) as TicketResumen[];
+
+  const filtroTecnico = tecnicoSesionId === undefined ? '' : ' WHERE t.tecnico_id = ?';
+  const parametrosTecnico = tecnicoSesionId === undefined ? [] : [tecnicoSesionId];
+  const categorias = conexion.prepare(`
+    SELECT DISTINCT c.id, c.nombre
+    FROM tickets t
+    JOIN categorias c ON c.id = t.categoria_sugerida_id
+    ${filtroTecnico}
+    ORDER BY c.nombre
+  `).all(...parametrosTecnico) as Array<{ id: number; nombre: string }>;
+  const tecnicos = conexion.prepare(`
+    SELECT DISTINCT u.id, u.nombre
+    FROM tickets t
+    JOIN usuarios u ON u.id = t.tecnico_id
+    ${filtroTecnico}
+    ORDER BY u.nombre
+  `).all(...parametrosTecnico) as Array<{ id: number; nombre: string }>;
+
+  return {
+    tickets,
+    total: conteo.total,
+    pagina,
+    limite,
+    totalPaginas,
+    categorias,
+    tecnicos,
+  };
 }
 
 export function obtenerTicket(

@@ -1,6 +1,6 @@
 import type Database from 'better-sqlite3';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CONDICION_DECISION_CONFIRMADA, ErrorDecision, registrarDecision, type DecisionTriaje } from './decision';
+import { CONDICION_DECISION_CONFIRMADA, ErrorDecision, obtenerDetalleDecision, registrarDecision, type DecisionTriaje } from './decision';
 import { crearBaseDePrueba, crearTicket, idCategoria, idGrupo, idUsuario } from './fixture';
 
 let bd: Database.Database;
@@ -46,6 +46,36 @@ describe('registrarDecision — aceptar', () => {
 });
 
 describe('registrarDecision — corregir', () => {
+  it('recupera nombres sugeridos originales aunque el técnico final cambie', () => {
+    registrarDecision(ticket, {
+      ...sugerida,
+      categoria_final_id: idCategoria(bd, 'Software'),
+      grupo_final_id: null,
+      tecnico_id: null,
+    }, agente, bd);
+
+    expect(obtenerDetalleDecision(ticket, bd)).toMatchObject({
+      pendiente: false,
+      sugerencia: {
+        categoria: 'Red',
+        grupo_id: idGrupo(bd, 'Redes y conectividad'),
+        grupo_nombre: 'Redes y conectividad',
+        tecnico_id: idUsuario(bd, 'tecnico2'),
+        tecnico_nombre: 'Técnico Redes',
+      },
+      decision: {
+        categoria_final_id: idCategoria(bd, 'Software'),
+        grupo_final_id: null,
+        tecnico_id: null,
+      },
+      decision_nombres: {
+        categoria: 'Software',
+        grupo: null,
+        tecnico: null,
+      },
+    });
+  });
+
   it('guarda una fila por campo corregido con sugerido y final', () => {
     const decision: DecisionTriaje = {
       categoria_final_id: idCategoria(bd, 'Hardware'),

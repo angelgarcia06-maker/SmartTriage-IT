@@ -197,7 +197,11 @@ describe('Integración Tickets con AUTH-05', () => {
     expect(detalleTecnico.status).toBe(200);
     expect(detalleTecnico.body).toMatchObject({
       pendiente: true,
-      sugerencia: { tecnico_id: sugerencia.tecnico_id },
+      sugerencia: {
+        tecnico_id: sugerencia.tecnico_id,
+        tecnico_nombre: expect.any(String),
+        grupo_nombre: expect.any(String),
+      },
     });
     expect((await tecnico.get('/api/triaje/catalogos')).status).toBe(403);
 
@@ -226,6 +230,7 @@ describe('Integración Tickets con AUTH-05', () => {
       pendiente: false,
       sugerencia: { tecnico_id: sugerencia.tecnico_id },
       decision: { tecnico_id: null },
+      decision_nombres: { tecnico: null },
     });
     const historial = await agente.get(`/api/tickets/${ticketId}/historial`);
     expect(historial.body.historial).toHaveLength(1);

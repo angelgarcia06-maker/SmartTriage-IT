@@ -32,6 +32,18 @@ export interface FiltrosTickets {
   categoria_id?: number;
   prioridad?: Prioridad;
   tecnico_id?: number;
+  pagina?: number;
+  limite?: number;
+}
+
+export interface ResultadoListadoTickets {
+  tickets: TicketResumen[];
+  total: number;
+  pagina: number;
+  limite: number;
+  totalPaginas: number;
+  categorias: Array<{ id: number; nombre: string }>;
+  tecnicos: Array<{ id: number; nombre: string }>;
 }
 
 export interface EventoHistorial {
@@ -71,17 +83,18 @@ export async function registrarTicket(datos: DatosTicket): Promise<TicketCreado>
   return cuerpo as TicketCreado;
 }
 
-export async function listarTickets(filtros: FiltrosTickets = {}): Promise<TicketResumen[]> {
+export async function listarTickets(filtros: FiltrosTickets): Promise<ResultadoListadoTickets> {
   const parametros = new URLSearchParams();
   if (filtros.busqueda) parametros.set('busqueda', filtros.busqueda);
   if (filtros.estado) parametros.set('estado', filtros.estado);
   if (filtros.categoria_id !== undefined) parametros.set('categoria_id', String(filtros.categoria_id));
   if (filtros.prioridad) parametros.set('prioridad', filtros.prioridad);
   if (filtros.tecnico_id !== undefined) parametros.set('tecnico_id', String(filtros.tecnico_id));
+  if (filtros.pagina !== undefined) parametros.set('pagina', String(filtros.pagina));
+  if (filtros.limite !== undefined) parametros.set('limite', String(filtros.limite));
   const query = parametros.toString();
   const url = query ? `${API.tickets.list}?${query}` : API.tickets.list;
-  const respuesta = await consultar<{ tickets: TicketResumen[] }>(url);
-  return respuesta.tickets;
+  return consultar<ResultadoListadoTickets>(url);
 }
 
 export function obtenerTicket(id: number): Promise<TicketDetalle> {
